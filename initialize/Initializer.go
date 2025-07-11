@@ -1,20 +1,19 @@
 package initialize
 
 import (
+	"context"
 	"errors"
 
-	client "github.com/ovn-kubernetes/libovsdb/client"
-	model "github.com/ovn-kubernetes/libovsdb/model"
+	NBModel "github.com/kwonkwonn/ovn-go-cms/ovs/internalModel"
+	client "github.com/ovn-org/libovsdb/client"
+	model "github.com/ovn-org/libovsdb/model"
 )
 
  
 
 
 func InitializeNBDBModel() (*model.ClientDBModel, error) {
-	dbModelReq, _ := model.NewClientDBModel("OVN_Northbound", map[string]model.Model{
-		"Logical_Switch": &Logical_Switch{},
-})
-
+	dbModelReq, _ := NBModel.FullDatabaseModel()
 	return &dbModelReq,nil
 }
 
@@ -30,6 +29,9 @@ func InitializeOvnClient( IPAddressNB string ) (client.Client, error) {
 	if err != nil {
 		panic(errors.New("initial connection failed booting ovn-cms, check if ovn-northdb is on"))
 	}
+
+	ovnClient.Connect(context.Background())
+	ovnClient.MonitorAll(context.Background())
 
 	return ovnClient, nil
 }

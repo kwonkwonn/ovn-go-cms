@@ -2,7 +2,7 @@ module github.com/kwonkwonn/ovn-go-cms
 
 go 1.22.6
 
-require github.com/ovn-kubernetes/libovsdb v0.8.0
+require github.com/kubeovn/libovsdb.git v0.8.0
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -14,7 +14,7 @@ require (
 	github.com/go-logr/logr v1.2.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/google/uuid v1.2.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/ovn-org/libovsdb v0.7.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
