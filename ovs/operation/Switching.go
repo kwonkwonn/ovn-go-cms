@@ -31,9 +31,9 @@ func (o * Operator) AddSwitchAPort(SWUUID string, ip string )(error){
 	newSP:= &NBModel.LogicalSwitchPort{
 		UUID: string(uuid.String()),
 		}
-
-	newSP.Addresses=append(newSP.Addresses, mac)
-
+	Address := fmt.Sprintf("%s %s",mac , ip)
+	newSP.Addresses=append(newSP.Addresses, Address)
+	
 	lsp , err := o.Client.Create(newSP)
 	if err!=nil{
 		return fmt.Errorf("%v", err)
@@ -47,6 +47,11 @@ func (o * Operator) AddSwitchAPort(SWUUID string, ip string )(error){
 	}) 
 	lsp = append(lsp, lsMute...)
 	o.Client.Transact(context.Background(),lsp...)
+	
+	o.IPMapping[ip]= SWUUID
+	util.SaveMapYaml(o.IPMapping)
+	
+	//ip가 할당되는 순간 Map 에 저장
 
 	return nil
 }
@@ -64,6 +69,7 @@ func (o *Operator) addSwitch () (string, error) {
 	}
 	newSwitch:=&NBModel.LogicalSwitch{
 		UUID:uuid.String(),
+		Name: "name",
 	}
 	fmt.Println(newSwitch)
 	ls,err:= o.Client.Create(newSwitch)	

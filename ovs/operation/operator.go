@@ -13,5 +13,5 @@ type Operator struct{
 	Client client.Client
 	ExternRouters map[string]*externalmodel.ExternRouter
 	ExternSwitchs map[string]*externalmodel.ExternSwitch
-	IPMapping map[string]externalmodel.ExternDevs
+	IPMapping map[string]string // device uuid
 }

@@ -1,7 +1,6 @@
 package externalmodel
 
 import (
-	"github.com/google/uuid"
 	NBModel "github.com/kwonkwonn/ovn-go-cms/ovs/internalModel"
 )
 
@@ -39,6 +38,6 @@ func (ES * ExternSwitch)ReturnUUID()string{
 	return ES.UUID
 }
 type ExternDevs interface{
-	ReturnUUID()  (uuid.UUID)
+	ReturnUUID()  (string)
 }
 
