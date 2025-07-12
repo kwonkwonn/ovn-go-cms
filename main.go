@@ -1,58 +1,60 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"time"
 
 	initialize "github.com/kwonkwonn/ovn-go-cms/initialize"
-	NBModel "github.com/kwonkwonn/ovn-go-cms/ovs/internalModel"
+	"github.com/kwonkwonn/ovn-go-cms/ovs/operation"
 )
 
+const NB_DB string = "10.5.15.3"
 
 func main(){
 
-	ovnClient, err := initialize.InitializeOvnClient("127.0.0.1")
+
+	ovnClient, err := initialize.InitializeOvnClient(NB_DB)
 	if err != nil {
 		log.Fatalf("Failed to initialize OVN client: %v", err)
 	}
-
-	ops, err := ovnClient.Create(&NBModel.LogicalSwitch{
-		Name: "foo",
-	})
-	if err!=nil{
-		fmt.Println(err)
+	Operator := &operation.Operator{
+		Client: ovnClient,
 	}
+ 
+	// ops, err := ovnClient.Create(&NBModel.LogicalRouter{
+	// 	Name: "foo",
+	// 	UUID: "3a3456b8-ab16-4602-a352-0bd9db372c97",
+	// })
+	// if err!=nil{
+	// 	fmt.Println(err)
+	// }
 	
-	_,err = ovnClient.Transact(context.Background(),ops...)
-	if(err!=nil){
-		fmt.Println(err)
-	}
+	// _,err = ovnClient.Transact(context.Background(),ops...)
+	// if(err!=nil){
+	// 	fmt.Println(err)
+	// }
 
-	// OVN이 내부적으로 동기화할 시간을 줍니다.
-// 이는 임시 방편이며, 실제로는 waitForCacheConsistent가 이 역할을 해야 합니다.
+	// Ors,_:=ovnClient.Create(&NBModel.LogicalRouter{})
+
+// YO ,_:=Operator.Client.Where(Ors).Delete()
+// fmt.Println(YO)
+// 	ovnClient.Transact(context.Background(), YO[0])
+	uuid ,err :=Operator.AddSwitch() 	
+	if err!=nil{
+		fmt.Println(uuid)
+	}
+	Operator.AddSwitchAPort(uuid, "20.10.15.24")
+
 time.Sleep(2 * time.Second) // 2초 대기
 
-	ls := &[]NBModel.LogicalRouter{}
-	// test := &initialize.Logical_Switch{Name:"foo"}
-	ovnClient.List(context.Background(), ls )
+
+	Operator.InitializeLogicalDevices()
 
 	time.Sleep(2 * time.Second) // 2초 대기
-	fmt.Println("List of logical devices:",ls)
+	
 
-
-	for i := range *ls{
-		ovs_to_del:=&NBModel.LogicalRouter{UUID: (*ls)[i].UUID}
-		ops,_:= ovnClient.Where(ovs_to_del).Delete()
-		ovnClient.Transact(context.Background(),ops...)
-	}
-
-	ls = &[]NBModel.LogicalRouter{}
-	// test := &initialize.Logical_Switch{Name:"foo"}
-	ovnClient.List(context.Background(), ls )
-
-	time.Sleep(2 * time.Second) // 2초 대기
-	fmt.Println("List of logical devices:",ls)
+	
+	fmt.Println("List of logical devices:",Operator.ExternRouters)
 	select{}
 }

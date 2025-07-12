@@ -15,19 +15,30 @@ import (
 initialize 폴더에서 시스템 가동시 db에서 모든
 
 */
-type subnet int8
+
 
 
 type ExternRouter struct{
-	UUID uuid.UUID
-	IP string
-	Subnet subnet //코어 컨트롤 ip를 net.Ip 로 바꿀때 함께 바꿀예정
-	InternalRouter NBModel.LogicalRouter
+	UUID string
+	// IP []string
+	InternalRouter *NBModel.LogicalRouter
 }
 
 type ExternSwitch struct{
-	UUID uuid.UUID
+	UUID string
 	ParentRouter *ExternRouter
-	IP    subnet  //코어 컨트롤 ip를 net.Ip 로 바꿀때 함께 바꿀예정
-	InternalRouter NBModel.LogicalSwitch
+	// IP    []string  
+	InternalSwitch *NBModel.LogicalSwitch
 }
+
+
+func (ER * ExternRouter)ReturnUUID()string{
+	return ER.UUID
+}
+func (ES * ExternSwitch)ReturnUUID()string{
+	return ES.UUID
+}
+type ExternDevs interface{
+	ReturnUUID()  (uuid.UUID)
+}
+
