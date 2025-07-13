@@ -52,8 +52,9 @@ func (o* Operator)AddExternRouter (LR NBModel.LogicalRouter)error {
 func (o* Operator)AddExternSwitch (LS NBModel.LogicalSwitch) error{
 	exS:=&externalmodel.ExternSwitch{
 		UUID: LS.UUID,
+		//IP: yaml에서 읽어서 할당
 	}
-
+	o.IPMapping[exS.IP] = exS.UUID 
 	o.ExternSwitchs[LS.UUID]=exS
 
 	return nil

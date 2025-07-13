@@ -12,24 +12,14 @@ import (
 )
 
 
-func (o * Operator) AddSwitchAPort(SWUUID string, ip string )(error){
+func (o * Operator) AddSwitchAPort(SWUUID string, ip string, uuid string , mac string)(error){
 	value ,ok := o.ExternSwitchs[SWUUID]; 
 	if !ok{
 		return fmt.Errorf("no such switch exist")
 	}
 
-	
-	uuid,err := util.UUIDGenerator()
-	if err!=nil{
-		return fmt.Errorf("no such switch exist")
-	}
-	mac,err := util.MacGenerator()
-	if err!=nil{
-		return fmt.Errorf("no such switch exist")
-	}
-
 	newSP:= &NBModel.LogicalSwitchPort{
-		UUID: string(uuid.String()),
+		UUID: string(uuid),
 		}
 	Address := fmt.Sprintf("%s %s",mac , ip)
 	newSP.Addresses=append(newSP.Addresses, Address)
@@ -56,13 +46,13 @@ func (o * Operator) AddSwitchAPort(SWUUID string, ip string )(error){
 	return nil
 }
 
-func (o * Operator) AddSwitch () (string ,error){
-	return  o.addSwitch()
+func (o * Operator) AddSwitch (ip string) (uuid string ,error error){
+	return  o.addSwitch(ip)
 	
 }
 
 
-func (o *Operator) addSwitch () (string, error) {
+func (o *Operator) addSwitch (ip string) (string, error) {
 	uuid ,err:=util.UUIDGenerator()
 	if err!=nil{
 		return "",fmt.Errorf("creating switch error %v",err)
@@ -86,6 +76,7 @@ func (o *Operator) addSwitch () (string, error) {
 	o.ExternSwitchs[uuid.String()]= &externalmodel.ExternSwitch{
 		UUID: uuid.String(),
 		InternalSwitch: newSwitch,
+		IP: ip,
 	}
 	return uuid.String(),nil
 

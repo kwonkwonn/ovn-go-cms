@@ -19,14 +19,14 @@ initialize 폴더에서 시스템 가동시 db에서 모든
 
 type ExternRouter struct{
 	UUID string
-	// IP []string
+	IP string
 	InternalRouter *NBModel.LogicalRouter
 }
 
 type ExternSwitch struct{
 	UUID string
 	ParentRouter *ExternRouter
-	// IP    []string  
+	IP    string
 	InternalSwitch *NBModel.LogicalSwitch
 }
 
