@@ -22,6 +22,7 @@ func main(){
 	if err != nil {
 		log.Fatalf("Failed to initialize OVN client: %v", err)
 	}
+
 	Operator := &operation.Operator{
 		Client: ovnClient,
 	}
@@ -32,6 +33,7 @@ func main(){
 		Operator.IPMapping= make(map[string]string,0)
 	}
 	Operator.InitializeLogicalDevices()
+	Operator.InitialSettig()
 
 	time.Sleep(2 * time.Second) // 2초 대기
 

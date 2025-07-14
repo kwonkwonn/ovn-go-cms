@@ -20,6 +20,8 @@ func (o * Operator) AddSwitchAPort(SWUUID string, ip string, uuid string , mac s
 
 	newSP:= &NBModel.LogicalSwitchPort{
 		UUID: string(uuid),
+		Name: string(uuid),
+		Type: "vif",
 		}
 	Address := fmt.Sprintf("%s %s",mac , ip)
 	newSP.Addresses=append(newSP.Addresses, Address)
@@ -31,13 +33,21 @@ func (o * Operator) AddSwitchAPort(SWUUID string, ip string, uuid string , mac s
 	
 	value.InternalSwitch.Ports = append(value.InternalSwitch.Ports, newSP.UUID)
 	lsMute,_  := o.Client.Where(value.InternalSwitch).Mutate( value.InternalSwitch, model.Mutation{
-		Field: value.InternalSwitch.Ports,
-		Mutator: ovsdb.MutateOperationAdd,
+		Field: &value.InternalSwitch.Ports,
+		Mutator: ovsdb.MutateOperationInsert,
 		Value: value.InternalSwitch.Ports,	
+		
 	}) 
+	o.IPMapping[ip]= newSP.UUID
+	 
 	lsp = append(lsp, lsMute...)
-	o.Client.Transact(context.Background(),lsp...)
-	
+	result,err := o.Client.Transact(context.Background(),lsp...)
+	if err!=nil{
+		fmt.Println("the problem is...", err)
+	}
+	fmt.Println(result)
+
+
 	o.IPMapping[ip]= SWUUID
 	util.SaveMapYaml(o.IPMapping)
 	
@@ -45,6 +55,48 @@ func (o * Operator) AddSwitchAPort(SWUUID string, ip string, uuid string , mac s
 
 	return nil
 }
+
+
+func (o * Operator) AddSwitchAPort_Router(SWUUID string, lrpuuid string , uuid string)(error){
+	value ,ok := o.ExternSwitchs[SWUUID]; 
+	if !ok{
+		return fmt.Errorf("no such switch exist")
+	}
+
+	newSP:= &NBModel.LogicalSwitchPort{
+		UUID: string(uuid),
+		Name: string(uuid),
+		Type: "router",
+		Options: map[string]string{"router-port":lrpuuid},
+		}
+	Address := "router"
+	newSP.Addresses=append(newSP.Addresses, Address)
+	
+	lsp , err := o.Client.Create(newSP)
+	if err!=nil{
+		return fmt.Errorf("%v", err)
+	}
+	value.InternalSwitch.Ports = append(value.InternalSwitch.Ports, newSP.UUID)
+	lsMute,_  := o.Client.Where(value.InternalSwitch).Mutate( value.InternalSwitch, model.Mutation{
+		Field: &value.InternalSwitch.Ports,
+		Mutator: ovsdb.MutateOperationInsert,
+		Value: value.InternalSwitch.Ports,	
+		
+	}) 
+	 
+	lsp = append(lsp, lsMute...)
+	result,err := o.Client.Transact(context.Background(),lsp...)
+	if err!=nil{
+		fmt.Println("the problem is...", err)
+	}
+	fmt.Println(result)
+	
+	//ip가 할당되는 순간 Map 에 저장
+
+	return nil
+}
+
+
 
 func (o * Operator) AddSwitch (ip string) (uuid string ,error error){
 	return  o.addSwitch(ip)
@@ -59,7 +111,7 @@ func (o *Operator) addSwitch (ip string) (string, error) {
 	}
 	newSwitch:=&NBModel.LogicalSwitch{
 		UUID:uuid.String(),
-		Name: "name",
+		Name: uuid.String(),
 	}
 	fmt.Println(newSwitch)
 	ls,err:= o.Client.Create(newSwitch)	
@@ -72,6 +124,8 @@ func (o *Operator) addSwitch (ip string) (string, error) {
 		return uuid.String() ,fmt.Errorf("creating switch error %v",err)
 	}
 	fmt.Println(result)
+
+	o.IPMapping[ip] = uuid.String()
 
 	o.ExternSwitchs[uuid.String()]= &externalmodel.ExternSwitch{
 		UUID: uuid.String(),

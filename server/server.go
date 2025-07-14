@@ -27,7 +27,7 @@ func InitServer(portNum int, handler service.Handler) {
 	//새로운 가상 머신을 생성, 기존 네트워크에 붙
 	// //http.HandleFunc("POST /Add/Net")
 	// // 네트워크를 생성, 기존 서브넷에 붙임, 아직 안씀
-	// http.HandleFunc("DELETE /ALL")
+	http.HandleFunc("DELETE /ALL", handler.DeleteAll)
 	// //**테스트용으로만 사용, 모든 가상 디바이스 삭제**
 	log.Printf("Starting HTTP server on %s (IPv4)", addr)
 

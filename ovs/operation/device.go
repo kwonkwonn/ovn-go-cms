@@ -22,7 +22,7 @@ func (o *Operator) DeleteSwitch(uuid string){
 func (o *Operator) DeleteAll(){
 	DS:= &[]NBModel.LogicalSwitch{
 	}
-	DR:= &[]NBModel.LogicalSwitch{
+	DR:= &[]NBModel.LogicalRouter{
 	}
 
 	o.Client.List(context.Background(),DS)
