@@ -3,57 +3,86 @@ package operation
 import (
 	"context"
 	"fmt"
+	"os/exec"
 
 	externalmodel "github.com/kwonkwonn/ovn-go-cms/ovs/externalModel"
 	NBModel "github.com/kwonkwonn/ovn-go-cms/ovs/internalModel"
 	"github.com/kwonkwonn/ovn-go-cms/ovs/util"
-	"github.com/ovn-org/libovsdb/model"
-	"github.com/ovn-org/libovsdb/ovsdb"
 )
 
 
-func (o*Operator) AddRouterPort(lruuid string ,lrpuuid string, ip string)(error){
-	//새로운 서브넷을 추가하는 것과 동일한 기능
-	mac,err:=util.MacGenerator()
-	if err!=nil{
-		return fmt.Errorf("generating mac for router port error %v", err)
-	}
 
-	externRouter,ok := o.ExternRouters[lruuid]
-	if !ok{
-		return fmt.Errorf("router not exist")
-	}
-    var latestRouter =NBModel.LogicalRouter{ UUID: externRouter.UUID}
-    err = o.Client.Get(context.Background(), &latestRouter)
-    if err != nil {
-        return fmt.Errorf("failed to get latest LogicalRouter from DB for UUID %s: %v", externRouter.UUID, err)
+
+func (o*Operator) AddRouterPort(lruuid string ,lrpuuid string, ip string)(error){
+    mac,err:=util.MacGenerator()
+    if err!=nil{
+        return fmt.Errorf("generating mac for router port error %v", err)
     }
 
-	newRP:=&NBModel.LogicalRouterPort{
-		UUID: lrpuuid,
-		Name: lrpuuid,
-		MAC: mac,
-		Networks: []string{ip},
-	}
-	ops,err:= o.Client.Create(context.Background(),newRP)
-	if err!=nil{
-		return fmt.Errorf("creating logical router error %v",err)
-	}
-	lsMute,_  := o.Client.Where(&latestRouter).Mutate( latestRouter, model.Mutation{
-		Field: &latestRouter.Ports,
-		Mutator: ovsdb.MutateOperationInsert,
-		Value: []string{newRP.UUID},
-	})
-	ops=append(ops, lsMute...)
-	result, err:= o.Client.Transact(context.Background(),ops...)
-	if err!=nil{
-		return fmt.Errorf("creating logical router error: transaction error %v",err)
-	}
-	fmt.Println(result)
+    creatR:= fmt.Sprintf("sudo ovn-nbctl lrp-add %s %s %s %s", lruuid,lrpuuid,mac,ip)
 
-	return nil
+    cmd:= exec.Command(creatR)
+    err=cmd.Run()
+    if err!=nil{
+        return fmt.Errorf("error creating router command, %v",err)
+    }
+    // 1. o.ExternRouters에서 ExternRouter 객체를 가져옴
+    externRouter,ok := o.ExternRouters[lruuid]
+    if !ok{
+        return fmt.Errorf("router not exist: %s", lruuid)
+    }
+    fmt.Printf("AddRouterPort: externRouter UUID: %s\n", externRouter.UUID)
+
+
+    // // 3. LogicalRouterPort 객체 생성 (Name 필드 다시 추가)
+	// newRP:=&NBModel.LogicalRouterPort{
+	// 	UUID: lrpuuid,
+	// 	Name: lrpuuid,
+	// 	MAC: mac,
+	// 	Networks: []string{ip+"/24"}, // 이미 초기화되어 있음
+	// }
+    // fmt.Printf("AddRouterPort: newRP details before Create: %+v\n", newRP)
+    // // 4. LogicalRouterPort 생성 Operation
+    // ops,err:= o.Client.Create(context.Background(),newRP)
+    // if err!=nil{
+    //     // 에러 발생 시 newRP 객체 정보도 함께 출력
+    //     return fmt.Errorf("creating logical router port create operation failed for newRP: %+v, error: %w", newRP, err)
+    // }
+    // fmt.Printf("AddRouterPort: Create newRP operation created. ops len: %d\n", len(ops))
+
+    // // 5. LogicalRouter의 Ports 필드에 새 포트 UUID를 추가하는 Mutation Operation
+    // //    Where 절과 Mutate 대상 모두 latestRouterModel을 사용합니다.
+    // lsMute, muteErr := o.Client.Where(&latestRouterModel).Mutate(&latestRouterModel, model.Mutation{
+    //     Field: &latestRouterModel.Ports, // latestRouterModel의 Ports 필드 참조
+    //     Mutator: ovsdb.MutateOperationInsert,
+    //     Value: []string{lrpuuid}, // OVSDB Set 타입에 맞게 []string 전달 (model.NewSet이 없다면)
+    // })
+    // if muteErr != nil {
+    //     return fmt.Errorf("failed to create mutate operation for router ports: %w", muteErr)
+    // }
+    // fmt.Printf("AddRouterPort: Mutate router ports operation created. lsMute len: %d\n", len(lsMute))
+    ///// <---- 이 ship 놈이 스위치 포트 추가에서는 정상적으로 동작하는데 라우터 포트에서는 어떤 이유인지 동작안함
+    // 시간이 부족해서 일단 임시방편으로 추가 후, 나중에 gdb등 사용해서 디버깅할 예정..(이미 하루 소모)
+
+
+    // 6. 모든 오퍼레이션을 단일 트랜잭션으로 전송
+    // ops=append(ops, lsMute...)
+    // fmt.Printf("AddRouterPort: Total operations in transaction: %d\n", len(ops))
+
+    // result, err:= o.Client.Transact(context.Background(),ops...)
+    // if err!=nil{
+    //     // 트랜잭션 실패 시 더 자세한 에러 메시지 출력
+    //     return fmt.Errorf("creating logical router port transaction error: %v, result: %+v",err, result)
+    // }
+    // fmt.Println("AddRouterPort Transact Result:", result)
+    // 각 오퍼레이션의 결과 확인 (res.Err 필드가 없다면 res.UUID가 비어있는지 등으로 판단)
+    // for i, res := range result {
+        // fmt.Printf("  Operation %d: UUID=%v\n", i, res.UUID) // res.Err이 없다면 이렇게 확인
+        // 만약 res에 다른 상태 필드가 있다면 그것도 출력
+    // }
+
+    return nil
 }
-
 
 
 func (o * Operator)AddRouter( IP string) (string, error){

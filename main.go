@@ -18,6 +18,8 @@ import (
 const NB_DB string = "10.5.15.3"
 
 func main(){
+
+	
 	ovnClient, err := initialize.InitializeOvnClient(NB_DB)
 	if err != nil {
 		log.Fatalf("Failed to initialize OVN client: %v", err)

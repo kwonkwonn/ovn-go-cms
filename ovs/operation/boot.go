@@ -8,8 +8,8 @@ import (
 	externalmodel "github.com/kwonkwonn/ovn-go-cms/ovs/externalModel"
 	NBModel "github.com/kwonkwonn/ovn-go-cms/ovs/internalModel"
 	"github.com/kwonkwonn/ovn-go-cms/ovs/util"
-	"github.com/ovn-org/libovsdb/model"
-	"github.com/ovn-org/libovsdb/ovsdb"
+	"github.com/ovn-kubernetes/libovsdb/model"
+	"github.com/ovn-kubernetes/libovsdb/ovsdb"
 )
 
 
@@ -65,40 +65,68 @@ func (o* Operator)AddExternSwitch (LS NBModel.LogicalSwitch) error{
 }
 
 
-func (o *Operator) AddInterconnectR_S(lsUUID string, lrUUID string, ip string)(error){
-	lrpuuid,err:=util.UUIDGenerator()
-	if err!=nil{
-		panic("lrpuuid generating error" )
-	}
-	lspuuid,err:=util.UUIDGenerator()
-	if err!=nil{
-		panic("lrpuuid generating error" )
-	}
-	
-	o.AddSwitchAPort_Router(lsUUID, lspuuid.String(), lspuuid.String())
-	o.AddRouterPort(lrUUID, lrpuuid.String(),ip)
+func (o * Operator) AddInterconnectR_S(lsUUID string, lrUUID string, ip string)(error){
+    lrpuuid,err:=util.UUIDGenerator()
+    if err!=nil{
+        panic("lrpuuid generating error" )
+    }
+    lspuuid,err:=util.UUIDGenerator()
+    if err!=nil{
+        panic("lrpuuid generating error" )
+    }
 
+    fmt.Println("--- AddInterconnectR_S START ---")
+    fmt.Printf("AddInterconnectR_S: lsUUID=%s, lrUUID=%s, ip=%s\n", lsUUID, lrUUID, ip)
 
-	return nil
+    fmt.Println("AddInterconnectR_S: Calling AddSwitchAPort_Router...")
+    err = o.AddSwitchAPort_Router(lsUUID, lspuuid.String(), lspuuid.String())
+    if err != nil {
+        fmt.Printf("AddInterconnectR_S ERROR: Error in AddSwitchAPort_Router: %v\n", err)
+        return err
+    }
+    fmt.Println("AddInterconnectR_S: AddSwitchAPort_Router completed.")
+
+    // AddRouterPort가 호출되는지 확인
+    fmt.Println("AddInterconnectR_S: Calling AddRouterPort...")
+    err = o.AddRouterPort(lrUUID, lrpuuid.String(),ip)
+    if err != nil {
+        fmt.Printf("AddInterconnectR_S ERROR: Error in AddRouterPort: %v\n", err)
+        return err
+    }
+    fmt.Println("AddInterconnectR_S: AddRouterPort completed.")
+    fmt.Println("--- AddInterconnectR_S END ---")
+
+    return nil
 }
-
 
 func (o* Operator) InitialSettig()(error){
 	//ls-ext 를 만듬
 	//lr-ext를 만듬
 	//lr-ext와 연결, lr-extsms 10.5.15.4에 저장되어 새로운 스위치가 생길때마다 연결해줘야 함
-
-	EXTS_uuid,err:= o.AddSwitch("EXT_S")
-	if (err!=nil){
-		panic("bootstraping failed, creating external Switch")
-	}
-	EXTR_uuid,err:=o.AddRouter(string(ROUTER))
-	if (err!=nil){
-		panic("bootstraping failed, creating external Switch")
-	}
-
-
-	o.AddInterconnectR_S(EXTS_uuid, EXTR_uuid, string(ROUTER)) // 새로운 가상 라우터는 10.5.15.4 할당 받음
+		// ... (생략)
+	
+		EXTS_uuid,err:= o.AddSwitch("EXT_S")
+		if (err!=nil){
+			panic("bootstraping failed, creating external Switch")
+		}
+		fmt.Printf("InitialSettig: Created EXTS_uuid: %s\n", EXTS_uuid)
+	
+		EXTR_uuid,err:=o.AddRouter(string(ROUTER))
+		if (err!=nil){
+			panic("bootstraping failed, creating external Switch")
+		}
+		fmt.Printf("InitialSettig: Created EXTR_uuid: %s\n", EXTR_uuid)
+	
+		fmt.Println("InitialSettig: Calling AddInterconnectR_S...")
+		err = o.AddInterconnectR_S(EXTS_uuid, EXTR_uuid, string(ROUTER)) // 새로운 가상 라우터는 10.5.15.4 할당 받음
+		if err != nil {
+			fmt.Printf("InitialSettig ERROR: Error in AddInterconnectR_S: %v\n", err)
+			// 여기서는 panic 대신 return err 로 변경하여 에러가 전파되도록 하는 것이 좋습니다.
+			return err
+		}
+		fmt.Println("InitialSettig: AddInterconnectR_S completed.")
+	
+		// ... (복사본 코드 및 나머지 생략)
 	
 	br_EXTS_UUID,err := util.UUIDGenerator()
 	if err!=nil{

@@ -3,11 +3,12 @@ package initialize
 import (
 	"context"
 	"errors"
+
 	// "time"
 
 	NBModel "github.com/kwonkwonn/ovn-go-cms/ovs/internalModel"
-	client "github.com/ovn-org/libovsdb/client"
-	model "github.com/ovn-org/libovsdb/model"
+	"github.com/ovn-kubernetes/libovsdb/client"
+	model "github.com/ovn-kubernetes/libovsdb/model"
 )
 
  

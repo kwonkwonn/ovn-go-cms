@@ -7,8 +7,8 @@ import (
 	externalmodel "github.com/kwonkwonn/ovn-go-cms/ovs/externalModel"
 	NBModel "github.com/kwonkwonn/ovn-go-cms/ovs/internalModel"
 	"github.com/kwonkwonn/ovn-go-cms/ovs/util"
-	"github.com/ovn-org/libovsdb/model"
-	"github.com/ovn-org/libovsdb/ovsdb"
+	"github.com/ovn-kubernetes/libovsdb/model"
+	"github.com/ovn-kubernetes/libovsdb/ovsdb"
 )
 
 
@@ -67,11 +67,10 @@ func (o * Operator) AddSwitchAPort_Router(SWUUID string, lrpuuid string , uuid s
 		UUID: string(uuid),
 		Name: string(uuid),
 		Type: "router",
+		Addresses: []string{"router"},
 		Options: map[string]string{"router-port":lrpuuid},
 		}
-	Address := "router"
-	newSP.Addresses=append(newSP.Addresses, Address)
-	
+
 	lsp , err := o.Client.Create(newSP)
 	if err!=nil{
 		return fmt.Errorf("%v", err)

@@ -5,7 +5,8 @@ import (
 	"strconv"
 
 	externalmodel "github.com/kwonkwonn/ovn-go-cms/ovs/externalModel"
-	"github.com/ovn-org/libovsdb/client"
+
+	"github.com/ovn-kubernetes/libovsdb/client"
 )
 
 //
