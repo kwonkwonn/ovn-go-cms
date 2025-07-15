@@ -14,25 +14,30 @@ import (
 
 
 func (o*Operator) AddRouterPort(lruuid string ,lrpuuid string, ip string)(error){
-    mac,err:=util.MacGenerator()
-    if err!=nil{
+    mac, err := util.MacGenerator()
+    if err != nil {
         return fmt.Errorf("generating mac for router port error %v", err)
     }
 
-    creatR:= fmt.Sprintf("sudo ovn-nbctl lrp-add %s %s %s %s", lruuid,lrpuuid,mac,ip)
-
-    cmd:= exec.Command(creatR)
-    err=cmd.Run()
-    if err!=nil{
-        return fmt.Errorf("error creating router command, %v",err)
+    // `ovn-nbctl`의 절대 경로를 사용
+    // creatR := fmt.Sprintf("sudo ovn-nbctl lrp-add %s %s %s %s", lruuid, lrpuuid, mac, ip) // 기존 코드
+    
+    // 변경된 코드 (예시: /usr/bin/ovn-nbctl 에 설치된 경우)
+    command := "/usr/bin/sudo" 
+    args := []string{
+        "ovn-nbctl",
+        "lrp-add",
+        lruuid,
+        lrpuuid,
+        mac,
+        ip,
     }
-    // 1. o.ExternRouters에서 ExternRouter 객체를 가져옴
-    externRouter,ok := o.ExternRouters[lruuid]
-    if !ok{
-        return fmt.Errorf("router not exist: %s", lruuid)
-    }
-    fmt.Printf("AddRouterPort: externRouter UUID: %s\n", externRouter.UUID)
 
+    cmd := exec.Command(command, args...) // `exec.Command`는 명령어와 인자를 분리해서 받는 것이 더 안전합니다.
+    err = cmd.Run()
+    if err != nil {
+        return fmt.Errorf("error creating router command, %v", err)
+    }
 
     // // 3. LogicalRouterPort 객체 생성 (Name 필드 다시 추가)
 	// newRP:=&NBModel.LogicalRouterPort{

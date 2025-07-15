@@ -3,6 +3,7 @@ package operation
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"time"
 
 	externalmodel "github.com/kwonkwonn/ovn-go-cms/ovs/externalModel"
@@ -75,35 +76,22 @@ func (o * Operator) AddInterconnectR_S(lsUUID string, lrUUID string, ip string)(
         panic("lrpuuid generating error" )
     }
 
-    fmt.Println("--- AddInterconnectR_S START ---")
-    fmt.Printf("AddInterconnectR_S: lsUUID=%s, lrUUID=%s, ip=%s\n", lsUUID, lrUUID, ip)
-
     fmt.Println("AddInterconnectR_S: Calling AddSwitchAPort_Router...")
-    err = o.AddSwitchAPort_Router(lsUUID, lspuuid.String(), lspuuid.String())
+    err = o.AddSwitchAPort_Router(lsUUID, lrpuuid.String(), lspuuid.String())
     if err != nil {
         fmt.Printf("AddInterconnectR_S ERROR: Error in AddSwitchAPort_Router: %v\n", err)
         return err
     }
-    fmt.Println("AddInterconnectR_S: AddSwitchAPort_Router completed.")
-
-    // AddRouterPort가 호출되는지 확인
-    fmt.Println("AddInterconnectR_S: Calling AddRouterPort...")
     err = o.AddRouterPort(lrUUID, lrpuuid.String(),ip)
     if err != nil {
         fmt.Printf("AddInterconnectR_S ERROR: Error in AddRouterPort: %v\n", err)
         return err
     }
-    fmt.Println("AddInterconnectR_S: AddRouterPort completed.")
-    fmt.Println("--- AddInterconnectR_S END ---")
 
     return nil
 }
 
 func (o* Operator) InitialSettig()(error){
-	//ls-ext 를 만듬
-	//lr-ext를 만듬
-	//lr-ext와 연결, lr-extsms 10.5.15.4에 저장되어 새로운 스위치가 생길때마다 연결해줘야 함
-		// ... (생략)
 	
 		EXTS_uuid,err:= o.AddSwitch("EXT_S")
 		if (err!=nil){
@@ -115,18 +103,12 @@ func (o* Operator) InitialSettig()(error){
 		if (err!=nil){
 			panic("bootstraping failed, creating external Switch")
 		}
-		fmt.Printf("InitialSettig: Created EXTR_uuid: %s\n", EXTR_uuid)
 	
-		fmt.Println("InitialSettig: Calling AddInterconnectR_S...")
-		err = o.AddInterconnectR_S(EXTS_uuid, EXTR_uuid, string(ROUTER)) // 새로운 가상 라우터는 10.5.15.4 할당 받음
+		err = o.AddInterconnectR_S(EXTS_uuid, EXTR_uuid, string(ROUTER))  
 		if err != nil {
 			fmt.Printf("InitialSettig ERROR: Error in AddInterconnectR_S: %v\n", err)
-			// 여기서는 panic 대신 return err 로 변경하여 에러가 전파되도록 하는 것이 좋습니다.
 			return err
 		}
-		fmt.Println("InitialSettig: AddInterconnectR_S completed.")
-	
-		// ... (복사본 코드 및 나머지 생략)
 	
 	br_EXTS_UUID,err := util.UUIDGenerator()
 	if err!=nil{
@@ -173,6 +155,25 @@ func (o* Operator) InitialSettig()(error){
 	util.SaveMapYaml(o.IPMapping)
 	
 	//ip가 할당되는 순간 Map 에 저장
+
+	for _,i:= range o.IPMapping{
+		fmt.Println(i)
+	}
+	command := "/usr/bin/sudo" 
+    args := []string{
+        "ovn-nbctl",
+		"ip_route_add",
+        EXTR_uuid,
+		"0.0.0.0/24",
+		"10.5.15.1",
+    }
+
+    cmd := exec.Command(command, args...) // `exec.Command`는 명령어와 인자를 분리해서 받는 것이 더 안전합니다.
+    err = cmd.Run()
+    if err != nil {
+        return fmt.Errorf("error creating router command, %v", err)
+    }
+
 
 	return nil
 }

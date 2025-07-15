@@ -39,7 +39,9 @@ func (o * Operator) AddSwitchAPort(SWUUID string, ip string, uuid string , mac s
 		
 	}) 
 	o.IPMapping[ip]= newSP.UUID
-	 
+	for _,i:= range o.IPMapping{
+		fmt.Println(i)
+	}
 	lsp = append(lsp, lsMute...)
 	result,err := o.Client.Transact(context.Background(),lsp...)
 	if err!=nil{
@@ -47,8 +49,7 @@ func (o * Operator) AddSwitchAPort(SWUUID string, ip string, uuid string , mac s
 	}
 	fmt.Println(result)
 
-
-	o.IPMapping[ip]= SWUUID
+	
 	util.SaveMapYaml(o.IPMapping)
 	
 	//ip가 할당되는 순간 Map 에 저장
