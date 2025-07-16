@@ -16,6 +16,16 @@ initialize 폴더에서 시스템 가동시 db에서 모든
 */
 
 
+type Chassis struct{
+	UUID string `yaml:"uuid"`
+	IP  string  `yaml:"ip"`
+	Tag string  `yaml:"tag"`
+}
+
+type Config struct {
+	ChassisList []Chassis `yaml:"chassis"`
+}
+
 
 type ExternRouter struct{
 	UUID string

@@ -23,14 +23,13 @@ func (o*Operator) AddRouterPort(lruuid string ,lrpuuid string, ip string)(error)
     // creatR := fmt.Sprintf("sudo ovn-nbctl lrp-add %s %s %s %s", lruuid, lrpuuid, mac, ip) // 기존 코드
     
     // 변경된 코드 (예시: /usr/bin/ovn-nbctl 에 설치된 경우)
-    command := "/usr/bin/sudo" 
+    command := "ovn-nbctl" 
     args := []string{
-        "ovn-nbctl",
         "lrp-add",
         lruuid,
         lrpuuid,
         mac,
-        ip,
+        ip+"/24",
     }
 
     cmd := exec.Command(command, args...) // `exec.Command`는 명령어와 인자를 분리해서 받는 것이 더 안전합니다.

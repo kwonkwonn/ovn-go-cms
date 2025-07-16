@@ -3,6 +3,7 @@ package operation
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"time"
 
@@ -11,8 +12,58 @@ import (
 	"github.com/kwonkwonn/ovn-go-cms/ovs/util"
 	"github.com/ovn-kubernetes/libovsdb/model"
 	"github.com/ovn-kubernetes/libovsdb/ovsdb"
+	"gopkg.in/yaml.v3"
 )
 
+
+func (o* Operator) ChassisInitializing(RouterUplinkPort string )(error){
+	//Chassis 에 대한 정보는 ovn-sb에 저장되어 있기 때문에
+	// 현재는 외부 파일에서 읽어오고 있습니다.
+	filepath:="./.chassis.yaml"
+	cfg:=  &externalmodel.Config{
+		ChassisList: make([]externalmodel.Chassis, 3),
+	}
+	data, err:=os.ReadFile(filepath)
+	if err!=nil{
+		panic("reading chassis file error, terminating process")
+	}
+	yaml.Unmarshal(data,cfg)
+
+	//router port 가 인식이 안되는 오류때문에, 커맨드로 대체하는중,,, 해결되면 고칠예정 
+
+	for i:= range cfg.ChassisList{
+		command:= "ovn-nbctl"
+		args:= []string{
+			"lrp-set-gateway-chassis",
+			RouterUplinkPort,
+			cfg.ChassisList[i].UUID,
+			"100",
+		}
+		cmd := exec.Command(command, args...) // 수정된 command 사용
+
+		// 명령어 실행 시 표준 출력과 표준 에러를 볼 수 있도록 연결
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	
+		fmt.Printf("Executing command: %s %v\n", command, args)
+	
+		err:= cmd.Run()
+		if err!=nil{
+			// 더 구체적인 에러 메시지를 반환합니다.
+			return fmt.Errorf("error setting router chassis priority for UUID %s: %w", cfg.ChassisList[i].UUID, err)
+		}
+	}
+
+	fmt.Println("after reading chassis.yaml ", cfg)
+	fmt.Println("after reading chassis.yaml ", cfg)
+	fmt.Println("after reading chassis.yaml ", cfg)
+	fmt.Println("after reading chassis.yaml ", cfg)
+	fmt.Println("after reading chassis.yaml ", cfg)
+	fmt.Println("after reading chassis.yaml ", cfg)
+
+
+return nil
+}
 
 func (o* Operator)InitializeLogicalDevices (){
 	o.ExternRouters = make(map[string]*externalmodel.ExternRouter)
@@ -76,12 +127,13 @@ func (o * Operator) AddInterconnectR_S(lsUUID string, lrUUID string, ip string)(
         panic("lrpuuid generating error" )
     }
 
-    fmt.Println("AddInterconnectR_S: Calling AddSwitchAPort_Router...")
     err = o.AddSwitchAPort_Router(lsUUID, lrpuuid.String(), lspuuid.String())
     if err != nil {
         fmt.Printf("AddInterconnectR_S ERROR: Error in AddSwitchAPort_Router: %v\n", err)
         return err
     }
+
+
     err = o.AddRouterPort(lrUUID, lrpuuid.String(),ip)
     if err != nil {
         fmt.Printf("AddInterconnectR_S ERROR: Error in AddRouterPort: %v\n", err)
@@ -104,11 +156,33 @@ func (o* Operator) InitialSettig()(error){
 			panic("bootstraping failed, creating external Switch")
 		}
 	
-		err = o.AddInterconnectR_S(EXTS_uuid, EXTR_uuid, string(ROUTER))  
-		if err != nil {
-			fmt.Printf("InitialSettig ERROR: Error in AddInterconnectR_S: %v\n", err)
+{
+	lrpuuid,err:=util.UUIDGenerator()
+	if err!=nil{
+		panic("lrpuuid generating error" )
+	}
+	lspuuid,err:=util.UUIDGenerator()
+	if err!=nil{
+			panic("lrpuuid generating error" )
+	}
+	
+	err = o.AddSwitchAPort_Router(EXTS_uuid, lrpuuid.String(), lspuuid.String())
+	if err != nil {
+		fmt.Printf("AddInterconnectR_S ERROR: Error in AddSwitchAPort_Router: %v\n", err)
+		return err
+	}
+		
+	err = o.AddRouterPort(EXTR_uuid, lrpuuid.String(),string(ROUTER))
+	if err != nil {
+			fmt.Printf("AddInterconnectR_S ERROR: Error in AddRouterPort: %v\n", err)
 			return err
-		}
+	}
+
+	err= o.ChassisInitializing(lrpuuid.String())
+	if err!= nil{
+		fmt.Printf("error adding chassis priority %v", err)
+	}
+}
 	
 	br_EXTS_UUID,err := util.UUIDGenerator()
 	if err!=nil{
