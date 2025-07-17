@@ -2,6 +2,8 @@ package externalmodel
 
 import (
 	NBModel "github.com/kwonkwonn/ovn-go-cms/ovs/internalModel"
+	"github.com/ovn-kubernetes/libovsdb/client"
+	"github.com/ovn-kubernetes/libovsdb/ovsdb"
 )
 
 /*
@@ -15,6 +17,12 @@ initialize 폴더에서 시스템 가동시 db에서 모든
 
 */
 
+
+type Interpretor interface{
+	AddPort(client.Client, ...func()(string))([]ovsdb.Operation,error)// 보통 상호 연결을 함...
+	DelPort(client.Client, ...func()(string))([]ovsdb.Operation,error)// //연결할 함수를 함께 호출함... 
+	ReturnUUID()string
+}
 
 type Chassis struct{
 	UUID string `yaml:"uuid"`
@@ -41,13 +49,6 @@ type ExternSwitch struct{
 }
 
 
-func (ER * ExternRouter)ReturnUUID()string{
-	return ER.UUID
-}
-func (ES * ExternSwitch)ReturnUUID()string{
-	return ES.UUID
-}
-type ExternDevs interface{
-	ReturnUUID()  (string)
-}
+
+
 

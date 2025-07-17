@@ -98,40 +98,28 @@ func (o * Operator) AddSwitchAPort_Router(SWUUID string, lrpuuid string , uuid s
 
 
 
-func (o * Operator) AddSwitch (ip string) (uuid string ,error error){
-	return  o.addSwitch(ip)
-	
-}
 
 
-func (o *Operator) addSwitch (ip string) (string, error) {
-	uuid ,err:=util.UUIDGenerator()
-	if err!=nil{
-		return "",fmt.Errorf("creating switch error %v",err)
-	}
-	newSwitch:=&NBModel.LogicalSwitch{
-		UUID:uuid.String(),
-		Name: uuid.String(),
-	}
-	fmt.Println(newSwitch)
-	ls,err:= o.Client.Create(newSwitch)	
+
+
+
+func (o *Operator) AddSwitch (ip string) (string, error) {
+	newSwitch,err:= externalmodel.NewSwitch(ip)
+
+	ls,err:= o.Client.Create(newSwitch.InternalSwitch)	
 	if err!=nil{
 		return "",fmt.Errorf("creating switch error %v",err)
 	}
 	
 	result , err := o.Client.Transact(context.Background(),ls...)
 	if err!=nil{
-		return uuid.String() ,fmt.Errorf("creating switch error %v",err)
+		return newSwitch.UUID ,fmt.Errorf("creating switch error %v",err)
 	}
 	fmt.Println(result)
 
-	o.IPMapping[ip] = uuid.String()
+	o.assignDevByIp(ip,newSwitch.UUID)
 
-	o.ExternSwitchs[uuid.String()]= &externalmodel.ExternSwitch{
-		UUID: uuid.String(),
-		InternalSwitch: newSwitch,
-		IP: ip,
-	}
-	return uuid.String(),nil
+	o.SwitchMapAdd(newSwitch)
 
+	return newSwitch.UUID,nil
 }
