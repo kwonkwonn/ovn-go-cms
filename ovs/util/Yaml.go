@@ -25,7 +25,7 @@ func SaveMapYaml(data interface{}){
 }
 
 func ReadMapNetYaml(loadedData map[string]string)error{
-	filePath := "netData.yaml	" // 읽어올 YAML 파일 경로
+	filePath := "netData.yaml" // 읽어올 YAML 파일 경로
 
 	// 1. YAML 파일 읽기
 	yamlData, err := os.ReadFile(filePath)

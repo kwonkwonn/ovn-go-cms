@@ -104,6 +104,7 @@ func (o * Operator)AddRouter( IP string) (string, error){
 	o.IPMapping[IP]=RtUUID.String()
 
 
+	util.SaveMapYaml(o.IPMapping)
 
 	return RtUUID.String(),nil
 

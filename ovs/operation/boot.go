@@ -54,13 +54,6 @@ func (o* Operator) ChassisInitializing(RouterUplinkPort string )(error){
 		}
 	}
 
-	fmt.Println("after reading chassis.yaml ", cfg)
-	fmt.Println("after reading chassis.yaml ", cfg)
-	fmt.Println("after reading chassis.yaml ", cfg)
-	fmt.Println("after reading chassis.yaml ", cfg)
-	fmt.Println("after reading chassis.yaml ", cfg)
-	fmt.Println("after reading chassis.yaml ", cfg)
-
 
 return nil
 }
@@ -108,6 +101,7 @@ func (o* Operator)AddExternSwitch (LS NBModel.LogicalSwitch) error{
 	exS:=&externalmodel.ExternSwitch{
 		UUID: LS.UUID,
 		//IP: yaml에서 읽어서 할당
+		InternalSwitch: &LS,
 	}
 	o.IPMapping[exS.IP] = exS.UUID 
 	o.ExternSwitchs[LS.UUID]=exS

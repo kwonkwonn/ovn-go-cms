@@ -15,39 +15,40 @@ initialize 폴더에서 시스템 가동시 db에서 모든
 
 */
 
-
-type Chassis struct{
+type Chassis struct {
 	UUID string `yaml:"uuid"`
-	IP  string  `yaml:"ip"`
-	Tag string  `yaml:"tag"`
+	IP   string `yaml:"ip"`
+	Tag  string `yaml:"tag"`
 }
 
 type Config struct {
 	ChassisList []Chassis `yaml:"chassis"`
 }
 
-
-type ExternRouter struct{
-	UUID string
-	IP string
-	InternalRouter *NBModel.LogicalRouter
+type ExternRouter struct {
+	UUID            string
+	IP              string
+	InternalRouter  *NBModel.LogicalRouter
 }
 
-type ExternSwitch struct{
-	UUID string
-	ParentRouter *ExternRouter
-	IP    string
-	InternalSwitch *NBModel.LogicalSwitch
+type ExternSwitch struct {
+	UUID             string
+	ParentRouter     *ExternRouter
+	IP               string
+	InternalSwitch   *NBModel.LogicalSwitch
 }
 
-
-func (ER * ExternRouter)ReturnUUID()string{
+func (ER *ExternRouter) ReturnUUID() string {
 	return ER.UUID
 }
-func (ES * ExternSwitch)ReturnUUID()string{
+func (ES *ExternSwitch) ReturnUUID() string {
 	return ES.UUID
 }
-type ExternDevs interface{
-	ReturnUUID()  (string)
+type ExternDevs interface {
+	ReturnUUID() (string)
 }
+
+var Operator = struct {
+	IPMapping map[string]string
+}{}
 
