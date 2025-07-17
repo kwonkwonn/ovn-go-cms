@@ -3,6 +3,7 @@ package operation
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 
 	externalmodel "github.com/kwonkwonn/ovn-go-cms/ovs/externalModel"
@@ -32,11 +33,43 @@ func (o*Operator) AddRouterPort(lruuid string ,lrpuuid string, ip string)(error)
         ip+"/24",
     }
 
+    
+
     cmd := exec.Command(command, args...) // `exec.Command`는 명령어와 인자를 분리해서 받는 것이 더 안전합니다.
+    cmd.Stdout = os.Stdout
+    cmd.Stderr = os.Stderr
     err = cmd.Run()
     if err != nil {
         return fmt.Errorf("error creating router command, %v", err)
     }
+    if ip== string(ROUTER) {
+        return nil
+    }
+    subnet,err:= util.GetNetworkAddress(ip+"/24")
+    if err!=nil  {
+        fmt.Println("subnet duplicated or generating error")
+    }
+	command= "ovn-nbctl"
+	args= []string{
+			"lr-nat-add",
+			lruuid,
+            "snat",
+			"10.5.15.4",
+			subnet+"/24",
+        }
+	cmd = exec.Command(command, args...) // 수정된 command 사용
+    cmd.Stdout = os.Stdout
+    cmd.Stderr = os.Stderr
+	// 명령어 실행 시 표준 출력과 표준 에러를 볼 수 있도록 연결
+	
+	
+	fmt.Printf("Executing command: %s %v\n", command, args)
+	
+	err= cmd.Run()
+		if err!=nil{
+			return fmt.Errorf("error setting router nat")
+		}
+
 
     // // 3. LogicalRouterPort 객체 생성 (Name 필드 다시 추가)
 	// newRP:=&NBModel.LogicalRouterPort{

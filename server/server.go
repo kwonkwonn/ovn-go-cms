@@ -36,3 +36,10 @@ func InitServer(portNum int, handler service.Handler) {
 		log.Fatalf("HTTP server failed: %v", err)
 	}
 }
+
+
+
+
+// 새로운 네트어크를 형성하고 싶다    <---- in ) 안곂치는 서브넷,  out) ->(ip(저장), mac,uuid) <-- json 코어한테 전달 
+// 새로운 인스턴스, usr a -> instace(sdafkadsf) -> subnet  in) (subnet)   out-> (ip, mac ,uuid)<--- 
+//  New/instance함수 콜 

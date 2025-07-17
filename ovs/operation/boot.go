@@ -57,9 +57,7 @@ func (o* Operator) ChassisInitializing(RouterUplinkPort string )(error){
 	fmt.Println("after reading chassis.yaml ", cfg)
 	fmt.Println("after reading chassis.yaml ", cfg)
 	fmt.Println("after reading chassis.yaml ", cfg)
-	fmt.Println("after reading chassis.yaml ", cfg)
-	fmt.Println("after reading chassis.yaml ", cfg)
-	fmt.Println("after reading chassis.yaml ", cfg)
+ 
 
 
 return nil

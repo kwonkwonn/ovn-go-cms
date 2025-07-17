@@ -1,12 +1,14 @@
 package operation
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	externalmodel "github.com/kwonkwonn/ovn-go-cms/ovs/externalModel"
 
 	"github.com/ovn-kubernetes/libovsdb/client"
+	"github.com/ovn-kubernetes/libovsdb/ovsdb"
 )
 
 //
@@ -24,7 +26,39 @@ type Operator struct{
 	ExternRouters map[string]*externalmodel.ExternRouter
 	ExternSwitchs map[string]*externalmodel.ExternSwitch
 	IPMapping map[string]string // device uuid
+	Transaction []Transaction 
 }
+
+type Transaction struct{
+	DBTransact ovsdb.Operation
+	SideEffect func(...any)(error)   // 
+	Undo func(...any)(error)
+}
+
+
+func (o*Operator)AddTransaction(operation ...ovsdb.Operation)(error){
+	if o.operations == nil{
+		return fmt.Errorf("operations are not initialized")
+	}
+	o.operations=append(o.operations, operation...)
+	return nil
+}
+
+
+// 명령들을 operations 에 있는 명령들을 수행합니다 
+func (o*Operator) Transact()(error){
+	result, err:= o.Client.Transact(context.Background(),o.operations...)
+	if err!=nil{
+		return fmt.Errorf("error on transactioning: %v")
+	}
+	fmt.Println(result)
+}
+
+// operation 들을 제거 합니다
+func (o*Operator) Flush(){
+
+}
+
 
 
 func (o* Operator) CheckIPExistance(IP string)(string){
