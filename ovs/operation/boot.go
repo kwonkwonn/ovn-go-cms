@@ -21,7 +21,7 @@ func (o* Operator) ChassisInitializing(RouterUplinkPort string )(error){
 	// 현재는 외부 파일에서 읽어오고 있습니다.
 	filepath:="./.chassis.yaml"
 	cfg:=  &externalmodel.Config{
-		ChassisList: make([]externalmodel.Chassis, 3),
+		ChassisList: make([]externalmodel.Chassis, 0),
 	}
 	data, err:=os.ReadFile(filepath)
 	if err!=nil{
@@ -149,6 +149,13 @@ func (o* Operator) InitialSettig()(error){
 		if (err!=nil){
 			panic("bootstraping failed, creating external Switch")
 		}
+		command:= "ovn-nbctl"
+		args := []string{
+			"lr-route-add",
+			EXTR_uuid,
+			"0.0.0.0/0",
+			string(DEFAULT_GATEWAY),			
+		}
 	
 {
 	lrpuuid,err:=util.UUIDGenerator()
@@ -227,10 +234,10 @@ func (o* Operator) InitialSettig()(error){
 	for _,i:= range o.IPMapping{
 		fmt.Println(i)
 	}
-	command := "/usr/bin/sudo" 
-    args := []string{
+	command = "/usr/bin/sudo" 
+    args = []string{
         "ovn-nbctl",
-		"ip_route_add",
+		"lr_route_add",
         EXTR_uuid,
 		"0.0.0.0/24",
 		"10.5.15.1",

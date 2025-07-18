@@ -38,6 +38,8 @@ func (o*Operator) AddRouterPort(lruuid string ,lrpuuid string, ip string)(error)
         return fmt.Errorf("error creating router command, %v", err)
     }
 
+
+
 	// newRP:=&NBModel.LogicalRouterPort{
 	// 	UUID: lrpuuid,
 	// 	Name: lrpuuid,

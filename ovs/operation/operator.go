@@ -17,6 +17,7 @@ const (
  //ip 가 할당 되어 있지 않지만 한번씩 필요한 놈들,
  // o.ipmap map[string]string 에 스트링으로 저장 
  ROUTER KNOWN_DEVICES = "10.5.15.4" // 추후에 getenv등으로 숨김 , const 라서 그렇게 초기화 될지는 몰?루
+ DEFAULT_GATEWAY KNOWN_DEVICES = "10.5.15.1"
 )
 
 type Operator struct{

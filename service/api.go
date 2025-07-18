@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"os/exec"
 
 	"github.com/kwonkwonn/ovn-go-cms/ovs/operation"
 	"github.com/kwonkwonn/ovn-go-cms/ovs/util"
@@ -56,6 +58,9 @@ func (h *Handler) CreateNewVm(w  http.ResponseWriter,r *http.Request ){
 	if err!=nil{
 		fmt.Println(err)
 	}
+
+
+
 
 	result:= &NewInstanceResult{
 		MacAddress: mac,
@@ -136,7 +141,26 @@ func (h *Handler) CreateNewNetVm(w http.ResponseWriter,r *http.Request ){
 	if err!=nil{
 		fmt.Println(err)
 	}
- 	result:= &NewInstanceResult{
+
+
+	command:= "ovn-nbctl" 
+    args := []string{
+        "lr-nat-add",
+        h.Operator.CheckIPExistance(string(operation.ROUTER)),
+        "snat",
+        string(operation.ROUTER),
+        request.RequestSubnet+"0/24",
+    }
+
+
+    cmd := exec.Command(command, args...) // `exec.Command`는 명령어와 인자를 분리해서 받는 것이 더 안전합니다.
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+    err = cmd.Run()
+    if err != nil {
+        fmt.Println("error creating router command, %v", err)
+    }
+ 	result := &NewInstanceResult{
 		MacAddress: mac,
 		IP: newIP_VM,
 		IfaceID: InstUUID.String(),
