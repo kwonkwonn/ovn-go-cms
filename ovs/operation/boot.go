@@ -149,13 +149,7 @@ func (o* Operator) InitialSettig()(error){
 		if (err!=nil){
 			panic("bootstraping failed, creating external Switch")
 		}
-		command:= "ovn-nbctl"
-		args := []string{
-			"lr-route-add",
-			EXTR_uuid,
-			"0.0.0.0/0",
-			string(DEFAULT_GATEWAY),			
-		}
+
 	
 {
 	lrpuuid,err:=util.UUIDGenerator()
@@ -234,16 +228,15 @@ func (o* Operator) InitialSettig()(error){
 	for _,i:= range o.IPMapping{
 		fmt.Println(i)
 	}
-	command = "/usr/bin/sudo" 
-    args = []string{
-        "ovn-nbctl",
-		"lr_route_add",
+	command := "ovn-nbctl" 
+    args := []string{
+		"lr-route-add",
         EXTR_uuid,
-		"0.0.0.0/24",
-		"10.5.15.1",
+		"0.0.0.0/0",
+		string(DEFAULT_GATEWAY),
     }
 
-    cmd := exec.Command(command, args...) // `exec.Command`는 명령어와 인자를 분리해서 받는 것이 더 안전합니다.
+    cmd := exec.Command(command, args...) 
     err = cmd.Run()
     if err != nil {
         return fmt.Errorf("error creating router command, %v", err)
