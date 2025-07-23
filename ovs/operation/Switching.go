@@ -97,6 +97,71 @@ func (o * Operator) AddSwitchAPort_Router(SWUUID string, lrpuuid string , uuid s
 }
 
 
+func (o * Operator) DelSwitchPort(ip string)(error){
+	lspuuid := o.CheckIPExistance(ip)
+	if lspuuid == "" {
+		return fmt.Errorf("no such switch port exist for ip %s", ip)
+	}
+	var lspDelOPS []ovsdb.Operation
+
+	netAdd,err:=util.GetNetWorkInterface(ip)
+	if err != nil {
+		return fmt.Errorf("invalid IP format: %v %s %s", err, netAdd, ip)
+	}
+	
+	dev, ok := o.IPMapping[netAdd+".1"]
+	if !ok{
+		return fmt.Errorf("no such switch port exist for ip %s", ip)
+	}
+	
+	EXT,err := o.findDevByUUID(dev)
+	if err != nil {
+		return fmt.Errorf("no such device for uuid %s: %v", dev, err)
+	}
+		
+	s,ok := EXT.(*externalmodel.ExternSwitch)
+		if !ok{
+			return fmt.Errorf("no such switch exist for uuid %s", dev)
+		}
+		for j := 0; j < len(s.InternalSwitch.Ports); { 
+			if s.InternalSwitch.Ports[j] == lspuuid {
+				swMute ,_ := o.Client.Where(s.InternalSwitch).Mutate(s.InternalSwitch, model.Mutation{
+				Field: &s.InternalSwitch.Ports,
+				Mutator: ovsdb.MutateOperationDelete,
+				Value: []string{lspuuid}, 
+
+				})
+				lspDelOPS = append(lspDelOPS, swMute...)
+				break
+						} 
+	}
+			
+		
+	
+
+	// 포트 삭제
+	lsp := &NBModel.LogicalSwitchPort{
+		UUID: lspuuid,
+	}
+	lspDelOP, err := o.Client.Where(lsp).Delete()
+	if err != nil {
+		return fmt.Errorf("deleting switch port error %v", err)
+	}
+	lspDelOPS = append(lspDelOPS, lspDelOP...)
+
+	result, err := o.Client.Transact(context.Background(), lspDelOPS...)
+	if err != nil {
+		return fmt.Errorf("deleting switch port error %v", err)
+	}
+	fmt.Println(result)
+
+	delete(o.IPMapping, ip)
+	util.SaveMapYaml(o.IPMapping)
+
+	return nil
+
+}
+
 
 func (o * Operator) AddSwitch (ip string) (uuid string ,error error){
 	return  o.addSwitch(ip)
@@ -134,4 +199,40 @@ func (o *Operator) addSwitch (ip string) (string, error) {
 	}
 	return uuid.String(),nil
 
+}
+
+
+func (o *Operator) DelSwitch(uuid string)(error){
+	value,ok := o.ExternSwitchs[uuid]
+	if !ok{
+		return fmt.Errorf("no such switch exist")
+	}
+	
+	lspDelOps:= make([]ovsdb.Operation, 0)
+
+
+	for _,port := range value.InternalSwitch.Ports{
+		lsp := &NBModel.LogicalSwitchPort{
+			UUID: port,
+		}
+		lspDelOP, err := o.Client.Where(lsp).Delete()
+		if err != nil {
+			return fmt.Errorf("deleting switch port error %v", err)
+		}
+		lspDelOps = append(lspDelOps, lspDelOP...)
+
+	}
+
+	result, err := o.Client.Transact(context.Background(), lspDelOps...)
+	if err != nil {
+		return fmt.Errorf("deleting switch port error %v", err)
+	}
+		fmt.Println(result)
+
+	delete(o.ExternSwitchs, uuid)
+	delete(o.IPMapping, value.IP)
+
+	util.SaveMapYaml(o.IPMapping)
+
+	return nil
 }

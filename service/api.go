@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 
 	"github.com/kwonkwonn/ovn-go-cms/ovs/operation"
 	"github.com/kwonkwonn/ovn-go-cms/ovs/util"
@@ -193,3 +194,114 @@ func (h *Handler) DeleteAll (w http.ResponseWriter, r* http.Request){
 // 	w.Write([]byte(fmt.Errorf("network already exist").Error()))
 // 	return
 // }
+
+
+
+
+func (h *Handler) DelNetVM(w http.ResponseWriter, r *http.Request) {
+	body,err:= io.ReadAll(r.Body)
+	if err!=nil{
+		fmt.Println("del switch error")
+		w.Write([]byte(err.Error()))
+		return
+	}
+	defer r.Body.Close()
+	request:= &DelInstanceRequest{}
+	err= json.Unmarshal(body, request)
+	if err!=nil{
+		fmt.Println("del switch error")
+		w.Write([]byte(err.Error()))
+		return
+	}
+	
+	count :=0
+	for i:= 11; i<=200; i++{
+		IP := request.IP+strconv.Itoa(i)
+		_,ok:= h.Operator.IPMapping[IP]
+		if !ok{
+			continue
+		}
+		count++
+		if count >=2{
+			fmt.Println("more than 2 devices exist, cannot delete")
+			w.Write([]byte(fmt.Errorf("more than 2 devices exist, cannot delete").Error()))
+			return
+		}
+	}
+	if count == 0{
+		fmt.Println("no such device exist")
+		w.Write([]byte(fmt.Errorf("no such device exist").Error()))
+		return
+	}
+
+	err= h.Operator.DelSwitch(request.IP)
+	if err!=nil{
+		fmt.Println("del switch error")
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	err= h.Operator.DelRouterPort()
+	if err!=nil{
+		fmt.Println("del router port error")
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+
+	result := &DelInstanceResult{
+		Detail: fmt.Errorf("delete vm success"),
+	}
+	data,err:= json.Marshal(result)
+	if err!=nil{
+		fmt.Printf("%v",fmt.Errorf("http sending error, cleanning"))
+		w.Write([]byte(fmt.Errorf("http sending error, cleanning").Error()))
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+	fmt.Println("delete vm success")
+
+}
+
+
+func (h *Handler) DelVM(w http.ResponseWriter, r *http.Request) {
+	body, err:= io.ReadAll(r.Body)
+	if err!=nil{
+		fmt.Println("del switch error")
+		w.Write([]byte(err.Error()))
+		return
+	}
+	defer r.Body.Close()
+	request:= &DelInstanceRequest{}
+	err= json.Unmarshal(body, request)
+	if err!=nil{
+		fmt.Println("del switch error")
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+
+	err = h.Operator.DelSwitchPort(request.IP)
+	if err!=nil{
+		fmt.Println("del switch port error")
+		w.Write([]byte(err.Error()))
+		return
+	}
+	
+
+	result := &DelInstanceResult{
+		Detail: fmt.Errorf("delete vm success"),
+	}
+	data,err:= json.Marshal(result)
+	if err!=nil{
+		fmt.Printf("%v",fmt.Errorf("http sending error, cleanning"))
+		w.Write([]byte(fmt.Errorf("http sending error, cleanning").Error()))
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+	fmt.Println("delete vm success")
+}

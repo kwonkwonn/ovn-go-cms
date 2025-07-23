@@ -10,7 +10,41 @@ import (
 	"github.com/kwonkwonn/ovn-go-cms/ovs/util"
 )
 
+//lrpuuid string
+func (o *Operator) DelRouterPort()(error){
+    // `ovn-nbctl`의 절대 경로를 사용
+    // delR := fmt.Sprintf("sudo ovn-nbctl lrp-del %s %s", lruuid, lrpuuid) // 기존 코드
+    lruuid:=o.CheckIPExistance(string(ROUTER))
+    // 변경된 코드 (예시: /usr/bin/ovn-nbctl 에 설치된 경우)
+    // command := "ovn-nbctl"
+    // args := []string{
+    //     "lrp-del",
+    //     lruuid,
+    //     lrpuuid,
+    // }
+    // 라우터 포트 구조체 문제 때문에, 당장 수정은 불가능
+    // 추후에 라우터 포트 구조체를 수정하고, 그에 맞게 수정해야 함
+    // cmd := exec.Command(command, args...) // `exec.Command`는 명령어와 인자를 분리해서 받는 것이 더 안전합니다.
+    // err := cmd.Run()
+    // if err != nil {
+    //     return fmt.Errorf("error deleting router port command, %v", err)
+    // }
+    command:= "ovn-nbctl"
+    args:= []string{
+        "lr-nat-del",
+        lruuid,
+        "snat",
+        o.ExternRouters[lruuid].IP+"/24",
+    }
 
+   cmd := exec.Command(command, args...) // `exec.Command`는 명령어와 인자를 분리해서 받는 것이 더 안전합니다.
+    err := cmd.Run()
+    if err != nil {
+        return fmt.Errorf("error deleting router port command, %v", err)
+    }
+
+    return nil
+}
 
 
 func (o*Operator) AddRouterPort(lruuid string ,lrpuuid string, ip string)(error){
