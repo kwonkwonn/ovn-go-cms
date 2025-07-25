@@ -213,10 +213,16 @@ func (h *Handler) DelNetVM(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(err.Error()))
 		return
 	}
-	
+	NetInterface,err:=util.GetNetWorkInterface(request.IP)
+	if err!=nil{
+		fmt.Println("del switch error")
+		w.Write([]byte(err.Error()))
+		return
+	}
+
 	count :=0
-	for i:= 11; i<=200; i++{
-		IP := request.IP+strconv.Itoa(i)
+	for i:= 11; i<=254; i++{
+		IP := NetInterface+strconv.Itoa(i)
 		_,ok:= h.Operator.IPMapping[IP]
 		if !ok{
 			continue
@@ -229,19 +235,19 @@ func (h *Handler) DelNetVM(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if count == 0{
-		fmt.Println("no such device exist")
+		fmt.Println("no such device exist byungsn")
 		w.Write([]byte(fmt.Errorf("no such device exist").Error()))
 		return
 	}
 
-	err= h.Operator.DelSwitch(request.IP)
+	err= h.Operator.DelSwitch(h.Operator.IPMapping[NetInterface+"1"])
 	if err!=nil{
 		fmt.Println("del switch error")
 		w.Write([]byte(err.Error()))
 		return
 	}
 
-	err= h.Operator.DelRouterPort()
+	err= h.Operator.DelRouterPort(NetInterface+"0")
 	if err!=nil{
 		fmt.Println("del router port error")
 		w.Write([]byte(err.Error()))

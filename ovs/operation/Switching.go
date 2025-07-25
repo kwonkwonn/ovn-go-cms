@@ -109,7 +109,7 @@ func (o * Operator) DelSwitchPort(ip string)(error){
 		return fmt.Errorf("invalid IP format: %v %s %s", err, netAdd, ip)
 	}
 	
-	dev, ok := o.IPMapping[netAdd+".1"]
+	dev, ok := o.IPMapping[netAdd+"1"]
 	if !ok{
 		return fmt.Errorf("no such switch port exist for ip %s", ip)
 	}
@@ -118,7 +118,7 @@ func (o * Operator) DelSwitchPort(ip string)(error){
 	if err != nil {
 		return fmt.Errorf("no such device for uuid %s: %v", dev, err)
 	}
-		
+	fmt.Println("EXT:", EXT)	
 	s,ok := EXT.(*externalmodel.ExternSwitch)
 		if !ok{
 			return fmt.Errorf("no such switch exist for uuid %s", dev)
@@ -131,10 +131,14 @@ func (o * Operator) DelSwitchPort(ip string)(error){
 				Value: []string{lspuuid}, 
 
 				})
+				s.InternalSwitch.Ports = append(s.InternalSwitch.Ports[:j], s.InternalSwitch.Ports[j+1:]...)
+				fmt.Println("swMute:", swMute)
 				lspDelOPS = append(lspDelOPS, swMute...)
 				break
 						} 
+			j++
 	}
+	fmt.Println("after processing EXT:", EXT)	
 			
 		
 	
@@ -222,6 +226,11 @@ func (o *Operator) DelSwitch(uuid string)(error){
 		lspDelOps = append(lspDelOps, lspDelOP...)
 
 	}
+	lsDelOp, err := o.Client.Where(value.InternalSwitch).Delete()
+	if err != nil {
+		return fmt.Errorf("deleting switch error %v", err)
+	}
+	lspDelOps = append(lspDelOps, lsDelOp...)
 
 	result, err := o.Client.Transact(context.Background(), lspDelOps...)
 	if err != nil {

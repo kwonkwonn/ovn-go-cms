@@ -11,7 +11,7 @@ import (
 )
 
 //lrpuuid string
-func (o *Operator) DelRouterPort()(error){
+func (o *Operator) DelRouterPort(netInt string)(error){
     // `ovn-nbctl`의 절대 경로를 사용
     // delR := fmt.Sprintf("sudo ovn-nbctl lrp-del %s %s", lruuid, lrpuuid) // 기존 코드
     lruuid:=o.CheckIPExistance(string(ROUTER))
@@ -34,7 +34,7 @@ func (o *Operator) DelRouterPort()(error){
         "lr-nat-del",
         lruuid,
         "snat",
-        o.ExternRouters[lruuid].IP+"/24",
+       netInt+"/24",
     }
 
    cmd := exec.Command(command, args...) // `exec.Command`는 명령어와 인자를 분리해서 받는 것이 더 안전합니다.

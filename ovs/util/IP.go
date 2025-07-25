@@ -21,5 +21,5 @@ func GetNetworkAddress(cidrIP string) (string, error) {
 func GetNetWorkInterface(ip string) (string,  error) {
 
 	ips:=strings.Split(ip,".")
-	return ips[0]+"."+ips[1]+"."+ips[2], nil
+	return ips[0]+"."+ips[1]+"."+ips[2]+".", nil
 }
