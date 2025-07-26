@@ -20,14 +20,11 @@ func SaveMapYaml(data interface{}){
 	if err != nil {
 		log.Fatalf("Error writing YAML to file: %v", err)
 	}
-
-  
 }
 
 func ReadMapNetYaml(loadedData map[string]string)error{
 	filePath := "netData.yaml" // 읽어올 YAML 파일 경로
 
-	// 1. YAML 파일 읽기
 	yamlData, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("error reading YAML file: %v", err)

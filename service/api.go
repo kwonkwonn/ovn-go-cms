@@ -25,7 +25,6 @@ func (h *Handler) CreateNewVm(w  http.ResponseWriter,r *http.Request ){
 		w.Write([]byte(err.Error()))
 	}
 
-
 	defer r.Body.Close()
 	request:= &NewInstanceRequeset{}
 	err= json.Unmarshal(body, request)
@@ -33,7 +32,6 @@ func (h *Handler) CreateNewVm(w  http.ResponseWriter,r *http.Request ){
 		fmt.Println("add switch error")
 		w.Write([]byte(err.Error()))
 		return
-
 	}
 
 	newIP := h.Operator.AvailableIP_VM(request.RequestSubnet)
@@ -113,9 +111,7 @@ func (h *Handler) CreateNewNetVm(w http.ResponseWriter,r *http.Request ){
 
 	mac,err:=util.MacGenerator()
 	if err!=nil{
-		fmt.Printf("%v",fmt.Errorf("http sending error, cleanning"))
 		w.Write([]byte(fmt.Errorf("mac generating error, cleaning").Error()))
-		//클린업 함수 만들어야 함 
 		return
 	}
 	InstUUID,err := util.UUIDGenerator()
@@ -147,7 +143,7 @@ func (h *Handler) CreateNewNetVm(w http.ResponseWriter,r *http.Request ){
 	command:= "ovn-nbctl" 
     args := []string{
         "lr-nat-add",
-        h.Operator.CheckIPExistance(string(operation.ROUTER)),
+        h.Operator.IPMapToDev(string(operation.ROUTER)),
         "snat",
         string(operation.ROUTER),
         request.RequestSubnet+"0/24",

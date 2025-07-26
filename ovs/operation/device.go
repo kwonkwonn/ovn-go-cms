@@ -15,7 +15,6 @@ func (o *Operator) DeleteSwitch(uuid string){
 		UUID:uuid,
 	}
 	YO ,_:=o.Client.Where(Ds).Delete()
-	fmt.Println(YO)
 	o.Client.Transact(context.Background(), YO...)
 }
 

@@ -23,6 +23,8 @@ func (o * Operator) AddSwitchAPort(SWUUID string, ip string, uuid string , mac s
 		Name: string(uuid),
 		Type: "vif",
 		}
+
+
 	Address := fmt.Sprintf("%s %s",mac , ip)
 	newSP.Addresses=append(newSP.Addresses, Address)
 	
@@ -98,7 +100,7 @@ func (o * Operator) AddSwitchAPort_Router(SWUUID string, lrpuuid string , uuid s
 
 
 func (o * Operator) DelSwitchPort(ip string)(error){
-	lspuuid := o.CheckIPExistance(ip)
+	lspuuid := o.IPMapToDev(ip)
 	if lspuuid == "" {
 		return fmt.Errorf("no such switch port exist for ip %s", ip)
 	}
