@@ -3,7 +3,6 @@ package operation
 import (
 	"context"
 	"fmt"
-	"os/exec"
 
 	externalmodel "github.com/kwonkwonn/ovn-go-cms/ovs/externalModel"
 	NBModel "github.com/kwonkwonn/ovn-go-cms/ovs/internalModel"
@@ -14,48 +13,47 @@ import (
 
 //lrpuuid string
 func (o *Operator) DelRouterPort(netInt string)(error){
-    // `ovn-nbctl`의 절대 경로를 사용
-    // delR := fmt.Sprintf("sudo ovn-nbctl lrp-del %s %s", lruuid, lrpuuid) // 기존 코드
-    lruuid:=o.IPMapToDev(string(ROUTER))
-    // 변경된 코드 (예시: /usr/bin/ovn-nbctl 에 설치된 경우)
-    // command := "ovn-nbctl"
-    // args := []string{
-    //     "lrp-del",
-    //     lruuid,
-    //     lrpuuid,
+    // ports:= &NBModel.LogicalRouterPort{
+    //     // Networks: []string{"20.20.22.1"+ "/24"},
     // }
-    // 라우터 포트 구조체 문제 때문에, 당장 수정은 불가능
-    // 추후에 라우터 포트 구조체를 수정하고, 그에 맞게 수정해야 함
-    // cmd := exec.Command(command, args...) // `exec.Command`는 명령어와 인자를 분리해서 받는 것이 더 안전합니다.
-    // err := cmd.Run()
-    // if err != nil {
-    //     return fmt.Errorf("error deleting router port command, %v", err)
-    // }
+    portss:= &[]NBModel.LogicalRouter{}
+     o.Client.List(context.Background(),portss)
 
+    fmt.Println("asfsfidsaofbadsfoisabfsodifsbfa", portss)
+
+    lruuid:=o.IPMapToDev(string(ROUTER))
     connectedRouter:= o.ExternRouters[lruuid]
     if connectedRouter == nil {
         return fmt.Errorf("no such router exist")
     }
-    o.Client.Where(connectedRouter.InternalRouter).Mutate(connectedRouter.InternalRouter, model.Mutation{
+    ops:= make([]ovsdb.Operation, 0)
+    operation,err :=o.Client.Where(connectedRouter.InternalRouter).Mutate(connectedRouter.InternalRouter, model.Mutation{
         Field: &connectedRouter.InternalRouter.Nat,
         Mutator: ovsdb.MutateOperationDelete,
-        Value: []string{netInt+"/24"},
-    })
-
-
-    command:= "ovn-nbctl"
-    args:= []string{
-        "lr-nat-del",
-        lruuid,
-        "snat",
-       netInt+"/24",
-    }
-
-   cmd := exec.Command(command, args...) // `exec.Command`는 명령어와 인자를 분리해서 받는 것이 더 안전합니다.
-    err := cmd.Run()
+        Value: []string{netInt+"/24"},   
+    })    
     if err != nil {
-        return fmt.Errorf("error deleting router port command, %v", err)
+        return fmt.Errorf("error mutating router nat: %v", err)
     }
+    ops = append(ops, operation...)
+
+    nat:= &NBModel.NAT{
+        Type: "snat",
+        LogicalIP: netInt + "/24",
+        ExternalIP: connectedRouter.IP,
+    }
+    operation,err = o.Client.WhereAny(nat).Delete()
+    if err != nil {
+        return fmt.Errorf("error deleting router nat: %v", err)
+    }
+
+    ops = append(ops, operation...)
+
+    result, err:= o.Client.Transact(context.Background(), ops...)
+    if err != nil {
+        return fmt.Errorf("deleting router port transaction error: %v, result: %+v", err, result)
+    }
+    fmt.Println("DelRouterPort Transact Result:", result)
 
     return nil
 }
@@ -84,8 +82,6 @@ func (o *Operator) AddRouterPort(lruuid string ,lrpuuid string, ip string)(error
         if muteErr != nil {
             return fmt.Errorf("failed to create mutate operation for router ports: %w", muteErr)
         }
-        /// <---- 이 ship 놈이 스위치 포트 추가에서는 정상적으로 동작하는데 라우터 포트에서는 어떤 이유인지 동작안함
-        // 시간이 부족해서 일단 임시방편으로 추가 후, 나중에 gdb등 사용해서 디버깅할 예정..(이미 하루 소모)
 
 
         ops=append(ops, lsMute...)

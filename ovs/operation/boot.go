@@ -89,11 +89,6 @@ func (o* Operator)AddExternRouter (LR NBModel.LogicalRouter)error {
 	}
 
 	o.ExternRouters[LR.UUID] = exR
-	// if len(exR.InternalRouter.Ports)!=0{
-	// 	ports:= &[]NBModel.LogicalRouterPort{}
-	// 	o.Client.List(context.Background(),ports)
-
-	// }
 	return nil
 }
 
@@ -107,7 +102,6 @@ func (o* Operator)AddExternSwitch (LS NBModel.LogicalSwitch) error{
 	o.ExternSwitchs[LS.UUID]=exS
 
 	return nil
-	// switch메소드에 필요한 필드의 유무를 찾고 추가하는 함수를 넣을 예정
 }
 
 
