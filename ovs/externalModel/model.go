@@ -2,15 +2,26 @@ package externalmodel
 
 import (
 	NBModel "github.com/kwonkwonn/ovn-go-cms/ovs/internalModel"
+	"github.com/ovn-kubernetes/libovsdb/ovsdb"
 )
 
 // router
 
+type portType string
+const (
+	ROUTER portType = "router"
+	SWITCH portType = "switch"
+	VM     portType = "vif"
+)
+
+
+type RouterPort NBModel.LogicalRouterPort
+type SwitchPort NBModel.LogicalSwitchPort
+
 type ExternRouter struct {
 	UUID            string
-	IP              string
 	InternalRouter  *NBModel.LogicalRouter
-	ports map[string] connector  // string -> ip 
+	ports map[string] NetInt // uuid -> port
 }
 // 간선 형태의 자료구조..
 // 현재는 기본적인 3-tier 형태로 구성되어 있음
@@ -18,25 +29,33 @@ type ExternRouter struct {
 // ovn 에서는 포트가 각 연결 지점 마다 다른 uuid 를 가짐. (관리가 매우 빡셈)
 // ip map을 통해 해당 연결 지점의 포트를 관리함
 
-type connector interface {
-	GetUUID() string
-	GetTopPorts(string) (string, error)
-	GetBottomPorts(string) (string, error)
+type NetInt interface {
+	GetConnector (portType) Connector
+	GetDeletor (portType) Deleter
 }
 // 모든 연결 지점은 해당 인터페이스를 구현해야 함
 
-type port struct {
-	UUID string
+type Connector interface {
+	Connect(RequestControl) ([]ovsdb.Operation,error)
+}
+
+type Deleter interface {
+	Delete(RequestControl) ([]ovsdb.Operation,error)
+}
+type RtoSwitchPort struct {
 	ConnectedRouter *ExternRouter
 	ConnectedSwitch *ExternSwitch
-	SwitchPort      string
-	RouterPort      string
+	SwitchPort      *SwitchPort
+	RouterPort      *RouterPort
+}
+
+type StoVMPort struct {
+	ConnectedSwitch *ExternSwitch
+	SwitchPort      SwitchPort
 }
 
 type ExternSwitch struct {
 	UUID             string
-	ParentRouter     *ExternRouter
-	IP               string
 	InternalSwitch   *NBModel.LogicalSwitch
 }
 /*

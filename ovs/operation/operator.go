@@ -27,12 +27,14 @@ const (
  ROUTER KNOWN_DEVICES = "10.5.15.4" // 추후에 getenv등으로 숨김 , const 라서 그렇게 초기화 될지는 몰?루
 )
 
+
 type Operator struct{
 	Client client.Client
-	ExternRouters map[string]*externalmodel.ExternRouter
-	ExternSwitchs map[string]*externalmodel.ExternSwitch
-	IPMapping map[string]string // device uuid
+	ExternRouters externalmodel.EXRList
+	ExternSwitchs externalmodel.EXSList
+	IPMapping map[string]externalmodel.NetInt // device uuid
 }
+
 
 
 func (o* Operator) IPMapToDev(IP string)(string){

@@ -37,7 +37,7 @@ func main(){
 	}
 	Operator.InitializeLogicalDevices()
 	if _,ok:=Operator.IPMapping["EXT_S"] ;!ok {
-		Operator.InitialSettig()
+		Operator.InitialSetting()
 	}
 	// Chassis 초기화
 

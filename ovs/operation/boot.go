@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"time"
+	"slices"
 
 	externalmodel "github.com/kwonkwonn/ovn-go-cms/ovs/externalModel"
 	NBModel "github.com/kwonkwonn/ovn-go-cms/ovs/internalModel"
@@ -61,9 +61,14 @@ return nil
 func (o* Operator)InitializeLogicalDevices (){
 	o.ExternRouters = make(map[string]*externalmodel.ExternRouter)
 	o.ExternSwitchs = make(map[string]*externalmodel.ExternSwitch)
-
+	routerPorts :=make(map[string]externalmodel.NetInt)
+	switchPorts :=make(map[string]externalmodel.NetInt)
+	
+	
 	LR :=&[]NBModel.LogicalRouter{}
 	LS :=&[]NBModel.LogicalSwitch{}
+	RPort := &[]NBModel.LogicalRouterPort{}
+	SPort:= &[]NBModel.LogicalSwitchPort{}
 
 	err:= o.Client.List(context.Background(), LS )
 	if err!=nil{
@@ -73,7 +78,40 @@ func (o* Operator)InitializeLogicalDevices (){
 	if err!=nil{
 		fmt.Println(fmt.Errorf("%v", err))
 	}
-	time.Sleep(2 * time.Second) // 2초 대기
+	err = o.Client.List(context.Background(), RPort)
+	if err != nil {
+		fmt.Println(fmt.Errorf("error listing logical router ports: %v", err))
+	}
+	err = o.Client.List(context.Background(), SPort)
+	if err != nil {
+		fmt.Println(fmt.Errorf("error listing logical switch ports: %v", err))
+	}
+
+	for i:= range *SPort {
+		if slices.Contains((*SPort)[i].Addresses,"router"){
+			RtoS:= externalmodel.RtoSwitchPort{
+				SwitchPort: &externalmodel.SwitchPort{
+					UUID: (*SPort)[i].UUID,
+				},
+				RouterPort: &externalmodel.RouterPort{
+					UUID: (*SPort)[i].Options["router-port"],
+				},
+			}
+			switchPorts[RtoS.SwitchPort.UUID] = RtoS
+			routerPorts[RtoS.RouterPort.UUID] = RtoS
+		}else if ((*SPort)[i].Type=="vif"){
+			StoVM := externalmodel.StoVMPort{
+				SwitchPort: externalmodel.SwitchPort{
+					UUID: (*SPort)[i].UUID,
+				},
+			}
+			switchPorts[StoVM.SwitchPort.UUID] = StoVM
+		}else{
+			continue
+		}
+	}
+
+
 	for i:=range *LR{
 		o.AddExternRouter((*LR)[i])
 	}
@@ -88,6 +126,10 @@ func (o* Operator)AddExternRouter (LR NBModel.LogicalRouter)error {
 		InternalRouter: &LR,
 	}
 
+	// R_Port:= &NBModel.LogicalRouterPort{
+
+	// }
+
 	o.ExternRouters[LR.UUID] = exR
 	return nil
 }
@@ -98,11 +140,14 @@ func (o* Operator)AddExternSwitch (LS NBModel.LogicalSwitch) error{
 		//IP: yaml에서 읽어서 할당
 		InternalSwitch: &LS,
 	}
-	o.IPMapping[exS.IP] = exS.UUID 
+
+
 	o.ExternSwitchs[LS.UUID]=exS
 
 	return nil
 }
+
+
 
 
 func (o * Operator) AddInterconnectR_S(lsUUID string, lrUUID string, ip string)(error){
@@ -115,6 +160,11 @@ func (o * Operator) AddInterconnectR_S(lsUUID string, lrUUID string, ip string)(
         panic("lrpuuid generating error" )
     }
 
+	InterPort:= externalmodel.RtoSwitchPort{
+		ConnectedRouter: o.ExternRouters[lrUUID],
+		ConnectedSwitch: o.ExternSwitchs[lsUUID],
+	}
+
     err = o.AddSwitchAPort_Router(lsUUID, lrpuuid.String(), lspuuid.String())
     if err != nil {
         fmt.Printf("AddInterconnectR_S ERROR: Error in AddSwitchAPort_Router: %v\n", err)
@@ -122,17 +172,17 @@ func (o * Operator) AddInterconnectR_S(lsUUID string, lrUUID string, ip string)(
     }
 
 
-    err = o.AddRouterPort(lrUUID, lrpuuid.String(),ip)
+    routerPort, err := o.AddRouterPort(lrUUID, lrpuuid.String(),ip)
     if err != nil {
         fmt.Printf("AddInterconnectR_S ERROR: Error in AddRouterPort: %v\n", err)
         return err
     }
-
+	InterPort.RouterPort = routerPort
     return nil
 }
 
-func (o* Operator) InitialSettig()(error){
-	
+func (o* Operator) InitialSetting()(error){
+
 		EXTS_uuid,err:= o.AddSwitch("EXT_S")
 		if (err!=nil){
 			panic("bootstraping failed, creating external Switch")
@@ -155,17 +205,23 @@ func (o* Operator) InitialSettig()(error){
 			panic("lrpuuid generating error" )
 	}
 	
+	InterPort:= externalmodel.RtoSwitchPort{
+		ConnectedRouter: o.ExternRouters[lrUUID],
+		ConnectedSwitch: o.ExternSwitchs[lsUUID],
+	}
 	err = o.AddSwitchAPort_Router(EXTS_uuid, lrpuuid.String(), lspuuid.String())
 	if err != nil {
 		fmt.Printf("AddInterconnectR_S ERROR: Error in AddSwitchAPort_Router: %v\n", err)
 		return err
 	}
-		
-	err = o.AddRouterPort(EXTR_uuid, lrpuuid.String(),string(ROUTER))
+
+	routerPort, err := o.AddRouterPort(EXTR_uuid, lrpuuid.String(), string(ROUTER))
 	if err != nil {
 			fmt.Printf("AddInterconnectR_S ERROR: Error in AddRouterPort: %v\n", err)
 			return err
 	}
+	InterPort.RouterPort = routerPort
+
 
 	err= o.ChassisInitializing(lrpuuid.String())
 	if err!= nil{

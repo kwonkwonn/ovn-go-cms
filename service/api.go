@@ -81,7 +81,6 @@ func (h *Handler) CreateNewVm(w  http.ResponseWriter,r *http.Request ){
 
 
 func (h *Handler) CreateNewNetVm(w http.ResponseWriter,r *http.Request ){
-	fmt.Println("new REQUEST")
 	body, err:= io.ReadAll(r.Body)
 	if err!=nil{
 		fmt.Println("add switch error")
@@ -243,7 +242,7 @@ func (h *Handler) DelNetVM(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err= h.Operator.DelRouterPort(NetInterface+"0")
+	err= h.Operator.DelRouterPort(NetInterface+"1")
 	if err!=nil{
 		fmt.Println("del router port error")
 		w.Write([]byte(err.Error()))

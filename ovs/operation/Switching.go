@@ -142,9 +142,6 @@ func (o * Operator) DelSwitchPort(ip string)(error){
 	}
 	fmt.Println("after processing EXT:", EXT)	
 			
-		
-	
-
 	// 포트 삭제
 	lsp := &NBModel.LogicalSwitchPort{
 		UUID: lspuuid,
@@ -169,13 +166,10 @@ func (o * Operator) DelSwitchPort(ip string)(error){
 }
 
 
-func (o * Operator) AddSwitch (ip string) (uuid string ,error error){
-	return  o.addSwitch(ip)
-	
-}
 
 
-func (o *Operator) addSwitch (ip string) (string, error) {
+
+func (o *Operator) AddSwitch (ip string) (string, error) {
 	uuid ,err:=util.UUIDGenerator()
 	if err!=nil{
 		return "",fmt.Errorf("creating switch error %v",err)
@@ -184,7 +178,6 @@ func (o *Operator) addSwitch (ip string) (string, error) {
 		UUID:uuid.String(),
 		Name: uuid.String(),
 	}
-	fmt.Println(newSwitch)
 	ls,err:= o.Client.Create(newSwitch)	
 	if err!=nil{
 		return "",fmt.Errorf("creating switch error %v",err)
@@ -201,7 +194,6 @@ func (o *Operator) addSwitch (ip string) (string, error) {
 	o.ExternSwitchs[uuid.String()]= &externalmodel.ExternSwitch{
 		UUID: uuid.String(),
 		InternalSwitch: newSwitch,
-		IP: ip,
 	}
 	return uuid.String(),nil
 
