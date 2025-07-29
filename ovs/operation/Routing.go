@@ -5,55 +5,50 @@ import (
 	"fmt"
 
 	externalmodel "github.com/kwonkwonn/ovn-go-cms/ovs/externalModel"
-	NBModel "github.com/kwonkwonn/ovn-go-cms/ovs/internalModel"
 	"github.com/kwonkwonn/ovn-go-cms/ovs/util"
-	"github.com/ovn-kubernetes/libovsdb/model"
 	"github.com/ovn-kubernetes/libovsdb/ovsdb"
 )
 
 //lrpuuid string
-func (o *Operator) DelRouterPort(network string)(error){
-    lruuid:=o.IPMapToDev(string(ROUTER))
-    lrp:= o.IPMapToDev()
-    connectedRouter:= o.ExternRouters.GetRouter(lruuid)
-    if connectedRouter == nil {
-        return fmt.Errorf("no such router exist")
-    }
-    ops:= make([]ovsdb.Operation, 0)
-    
-    
-    
-    
-    operation,err :=o.Client.Where(connectedRouter.InternalRouter).Mutate(connectedRouter.InternalRouter, model.Mutation{
-        Field: &connectedRouter.InternalRouter.Nat,
-        Mutator: ovsdb.MutateOperationDelete,
-        Value: []string{netInt+"/24"},   
-    })    
-    if err != nil {
-        return fmt.Errorf("error mutating router nat: %v", err)
-    }
-    ops = append(ops, operation...)
+// func (o *Operator) DelRouterPort(network string)(error){
+//     lruuid:=o.IPMapToDev(string(ROUTER))
+//     lrp:= o.IPMapToDev()
+//     connectedRouter:= o.ExternRouters.GetRouter(lruuid)
+//     if connectedRouter == nil {
+//         return fmt.Errorf("no such router exist")
+//     }
+//     ops:= make([]ovsdb.Operation, 0)
 
-    nat:= &NBModel.NAT{
-        Type: "snat",
-        LogicalIP: netInt + "/24",
-        ExternalIP: connectedRouter.IP,
-    }
-    operation,err = o.Client.WhereAny(nat).Delete()
-    if err != nil {
-        return fmt.Errorf("error deleting router nat: %v", err)
-    }
+//     operation,err :=o.Client.Where(connectedRouter.InternalRouter).Mutate(connectedRouter.InternalRouter, model.Mutation{
+//         Field: &connectedRouter.InternalRouter.Nat,
+//         Mutator: ovsdb.MutateOperationDelete,
+//         Value: []string{netInt+"/24"},
+//     })
+//     if err != nil {
+//         return fmt.Errorf("error mutating router nat: %v", err)
+//     }
+//     ops = append(ops, operation...)
 
-    ops = append(ops, operation...)
+//     nat:= &NBModel.NAT{
+//         Type: "snat",
+//         LogicalIP: netInt + "/24",
+//         ExternalIP: connectedRouter.IP,
+//     }
+//     operation,err = o.Client.WhereAny(nat).Delete()
+//     if err != nil {
+//         return fmt.Errorf("error deleting router nat: %v", err)
+//     }
 
-    result, err:= o.Client.Transact(context.Background(), ops...)
-    if err != nil {
-        return fmt.Errorf("deleting router port transaction error: %v, result: %+v", err, result)
-    }
-    fmt.Println("DelRouterPort Transact Result:", result)
+//     ops = append(ops, operation...)
 
-    return nil
-}
+//     result, err:= o.Client.Transact(context.Background(), ops...)
+//     if err != nil {
+//         return fmt.Errorf("deleting router port transaction error: %v, result: %+v", err, result)
+//     }
+//     fmt.Println("DelRouterPort Transact Result:", result)
+
+//     return nil
+// }
 
 func (o *Operator) AddRouterPort(lruuid string ,lrpuuid string, ip string)(*externalmodel.RouterPort,error){
         
@@ -111,10 +106,11 @@ func (o *Operator) AddRouter(IP string) (string, error) {
 	fmt.Println(result)
 	
 	o.ExternRouters[RtUUID.String()]=&router
-	o.IPMapping[IP]=RtUUID.String()
+	o.ExternRouters[IP]=&router
+	// o.IPMapping[IP]=RtUUID.String()
 
 
-	util.SaveMapYaml(o.IPMapping)
+	// util.SaveMapYaml(o.IPMapping)
     // IPMapping에 IP와 UUID를 저장
 	return RtUUID.String(),nil
 

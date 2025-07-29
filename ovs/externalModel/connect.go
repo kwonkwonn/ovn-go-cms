@@ -32,6 +32,24 @@ func (LP *RouterPort) Connect(request RequestControl) ([]ovsdb.Operation, error)
 // 
  
 
+func (sp SwitchPort) Connect (request RequestControl) ([]ovsdb.Operation, error)  {
+	targetSwitch := request.EXSList.GetSwitch(request.TargetUUID)
+	if targetSwitch == nil {
+		return nil, fmt.Errorf("no such switch exist")
+	}
+
+	targetSwitch.InternalSwitch.Ports= append(targetSwitch.InternalSwitch.Ports, sp.UUID)
+	lsMute, err := request.Client.Where(targetSwitch.InternalSwitch).Mutate(targetSwitch.InternalSwitch, model.Mutation{
+		Field: &targetSwitch.InternalSwitch.Ports,
+		Mutator: ovsdb.MutateOperationInsert,
+		Value: targetSwitch.InternalSwitch.Ports,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to mutate switch ports: %w", err)
+	}
+	return lsMute, nil
+}
+
 
 func (p RtoSwitchPort) GetConnector(intType portType) Connector {
 	if intType == ROUTER {

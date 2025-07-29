@@ -2,7 +2,6 @@ package operation
 
 import (
 	"fmt"
-	"strconv"
 
 	externalmodel "github.com/kwonkwonn/ovn-go-cms/ovs/externalModel"
 
@@ -32,17 +31,17 @@ type Operator struct{
 	Client client.Client
 	ExternRouters externalmodel.EXRList
 	ExternSwitchs externalmodel.EXSList
-	IPMapping map[string]externalmodel.NetInt // device uuid
+	// IPMapping map[string]string// device uuid
 }
 
 
 
-func (o* Operator) IPMapToDev(IP string)(string){
-	dev,ok := o.IPMapping[IP]
-	if !ok{
-		return ""
+func (o* Operator) IPMapToDev(IP string)(externalmodel.NetInt){
+	list:= externalmodel.GetNetInt(o.ExternRouters, IP)
+ if len(list) > 0 {
+		return list[0]
 	}
-	return dev
+	return nil
 }
 
 func (o* Operator) SwitchesPortConnect(uuids []string,IP string ,VMUUID string, VMMac string)(error){
@@ -55,43 +54,13 @@ func (o* Operator) SwitchesPortConnect(uuids []string,IP string ,VMUUID string, 
 }
 
 
-func (o * Operator)FindExistdev(subnet string )([]string){
-	var devs =make([]string,0)
-	for i:=1; i<10; i++{
-		dev, ok:= o.IPMapping[subnet + strconv.Itoa(i)]
-		if !ok{
-			return devs
-		}
-		devs=append(devs, dev)
-	}	
-	return devs
-}
 
 
-func (o* Operator) AvailableIP_VM(subnet string)(ip string){
-	//   /24로 가정 , 1~10번은 가상 디바이스에 우선적으로 할당
-	for i:=11; i<= 254; i++{
-		IP := subnet+ strconv.Itoa(i)
-		uuid := o.IPMapToDev(IP)
-		if uuid ==""{
-			return IP
-		}
-	}
-	return ""
-}
 
 
-func (o* Operator) AvailableIP_Dev(subnet string)(ip string){
-	//   /24로 가정 , 1~10번은 가상 디바이스에 우선적으로 할당
-	for i:=1; i<= 10; i++{
-		IP := subnet+ strconv.Itoa(i)
-		uuid := o.IPMapToDev(IP)
-		if uuid ==""{
-			return IP
-		}
-	}
-	return ""
-}
+
+
+
 
 
 func (o* Operator) findDevByUUID(uuid string) (any, error){

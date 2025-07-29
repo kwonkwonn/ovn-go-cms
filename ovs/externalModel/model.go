@@ -11,7 +11,7 @@ type portType string
 const (
 	ROUTER portType = "router"
 	SWITCH portType = "switch"
-	VM     portType = "vif"
+	VIF     portType = "vif"
 )
 
 
@@ -21,7 +21,7 @@ type SwitchPort NBModel.LogicalSwitchPort
 type ExternRouter struct {
 	UUID            string
 	InternalRouter  *NBModel.LogicalRouter
-	ports map[string] NetInt // uuid -> port
+	subNetworks     map[string]NetInt // uuid -> port
 }
 // 간선 형태의 자료구조..
 // 현재는 기본적인 3-tier 형태로 구성되어 있음
@@ -31,7 +31,7 @@ type ExternRouter struct {
 
 type NetInt interface {
 	GetConnector (portType) Connector
-	GetDeletor (portType) Deleter
+	// GetDeletor (portType) Deleter
 }
 // 모든 연결 지점은 해당 인터페이스를 구현해야 함
 
@@ -39,9 +39,9 @@ type Connector interface {
 	Connect(RequestControl) ([]ovsdb.Operation,error)
 }
 
-type Deleter interface {
-	Delete(RequestControl) ([]ovsdb.Operation,error)
-}
+// type Deleter interface {
+// 	Delete(RequestControl) ([]ovsdb.Operation,error)
+// }
 type RtoSwitchPort struct {
 	ConnectedRouter *ExternRouter
 	ConnectedSwitch *ExternSwitch
@@ -51,7 +51,7 @@ type RtoSwitchPort struct {
 
 type StoVMPort struct {
 	ConnectedSwitch *ExternSwitch
-	SwitchPort      SwitchPort
+	SwitchPort      *SwitchPort
 }
 
 type ExternSwitch struct {

@@ -36,23 +36,39 @@ func (RP *RouterPort) Delete(request RequestControl) ([]ovsdb.Operation, error) 
 	}
 	return transactions, nil
 	
-
-
 }
 
+// func (SP *SwitchPort) Delete(request RequestControl) ([]ovsdb.Operation, error) {
+// 	targetSwitch := request.EXSList.GetSwitch(request.TargetUUID)
+// 	if targetSwitch == nil {
+// 		return nil, nil // No switch to delete from
+// 	}
 
-func (p RtoSwitchPort) GetDeletor(intType portType) Deleter {
-	if intType == ROUTER {
-		return p.RouterPort
-	} else if intType == SWITCH {
-		return p.SwitchPort
-	}
-	return nil
-}
+// 	targetSwitch.InternalSwitch.Ports = util.RemoveString(targetSwitch.InternalSwitch.Ports, SP.UUID)
+// 	lsMute, err := request.Client.Where(targetSwitch.InternalSwitch).Mutate(targetSwitch.InternalSwitch, model.Mutation{
+// 		Field: &targetSwitch.InternalSwitch.Ports,
+// 		Mutator: ovsdb.MutateOperationDelete,
+// 		Value: targetSwitch.InternalSwitch.Ports,
+// 	})
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return lsMute, nil
+// }
 
-func (p StoVMPort) GetDeletor(intType portType) Deleter {
-	if intType == "switch" {
-		return p.SwitchPort
-	}
-	return nil
-}
+
+// func (p RtoSwitchPort) GetDeletor(intType portType) Deleter {
+// 	if intType == ROUTER {
+// 		return p.RouterPort
+// 	} else if intType == SWITCH {
+// 		return p.SwitchPort
+// 	}
+// 	return nil
+// }
+
+// func (p StoVMPort) GetDeletor(intType portType) Deleter {
+// 	if intType == "switch" {
+// 		return p.SwitchPort
+// 	}
+// 	return nil
+// }
