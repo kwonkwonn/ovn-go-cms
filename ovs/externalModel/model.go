@@ -21,7 +21,7 @@ type SwitchPort NBModel.LogicalSwitchPort
 type ExternRouter struct {
 	UUID            string
 	InternalRouter  *NBModel.LogicalRouter
-	subNetworks     map[string]NetInt // uuid -> port
+	SubNetworks     map[string]NetInt // uuid -> port
 }
 // 간선 형태의 자료구조..
 // 현재는 기본적인 3-tier 형태로 구성되어 있음

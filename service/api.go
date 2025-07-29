@@ -52,7 +52,8 @@ func (h *Handler) CreateNewVm(w  http.ResponseWriter,r *http.Request ){
 	}
 	fmt.Println(mac)
 
-	interconnectInt := externalmodel.GetNetInt(h.Operator.ExternRouters, request.RequestSubnet)
+	fmt.Print(h.Operator.ExternRouters[string(operation.ROUTER)].SubNetworks)
+	interconnectInt := externalmodel.GetNetInt(h.Operator.ExternRouters, request.RequestSubnet+"1")
 	switchs := interconnectInt[0].(externalmodel.RtoSwitchPort).ConnectedSwitch
 	err = h.Operator.SwitchesPortConnect([]string{switchs.UUID}, newIP, InstUUID.String(), mac)
 	if err != nil {

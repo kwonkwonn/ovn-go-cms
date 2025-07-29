@@ -8,7 +8,7 @@ import "strconv"
 func GetNetInt(routers EXRList, ip string)[]NetInt {
 	netInst:= make([]NetInt, 0)
 	for _, router := range routers {
-		if netint , ok := router.subNetworks[ip]; ok {
+		if netint , ok := router.SubNetworks[ip]; ok {
 			netInst = append(netInst, netint)
 		}
 	}
@@ -16,11 +16,16 @@ func GetNetInt(routers EXRList, ip string)[]NetInt {
 	return netInst
 }
 
-
+func AddNetIntToRouter(router *ExternRouter, ip string, netint NetInt) {
+    if router.SubNetworks == nil {
+        router.SubNetworks = make(map[string]NetInt)
+    }
+    router.SubNetworks[ip] = netint
+}
 func AddNetInt(routers EXRList, ip string, netint NetInt) {
 	for _, router := range routers {
-		if _, ok := router.subNetworks[ip]; !ok {
-			router.subNetworks[ip] = netint
+		if _, ok := router.SubNetworks[ip]; !ok {
+			router.SubNetworks[ip] = netint
 		}
 	}
 }

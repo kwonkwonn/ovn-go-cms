@@ -96,7 +96,7 @@ func (o* Operator)InitializeLogicalDevices (){
 
     // 먼저 스위치 포트들을 분류하고 매핑
     for i:= range *SPort {
-        port := &(*SPort)[i]
+        port := (*SPort)[i]
         fmt.Printf("Processing switch port: UUID=%s, Type=%s, Addresses=%v\n", 
             port.UUID, port.Type, port.Addresses)
 
@@ -107,11 +107,9 @@ func (o* Operator)InitializeLogicalDevices (){
                 fmt.Printf("Warning: router type port %s missing router-port option\n", port.UUID)
                 continue
             }
-
-            RtoS:= externalmodel.RtoSwitchPort{
-                SwitchPort: &externalmodel.SwitchPort{
-                    UUID: port.UUID,
-                },
+            switchPort := externalmodel.SwitchPort(port)
+            RtoS := externalmodel.RtoSwitchPort{
+                SwitchPort: &switchPort,
                 RouterPort: &externalmodel.RouterPort{
                     UUID: routerPortUUID,
                 },
@@ -139,6 +137,12 @@ func (o* Operator)InitializeLogicalDevices (){
     fmt.Printf("Created %d router port mappings, %d switch port mappings\n", 
         len(routerPorts), len(switchPorts))
 
+    for i:= range *RPort {
+        port := (*RPort)[i]
+        routerPorts[port.UUID] = externalmodel.RouterPort{
+        }
+    }
+    
     // 라우터들을 ExternRouter로 변환
     for i:=range *LR{
         router := (*LR)[i]
@@ -171,6 +175,7 @@ func (o* Operator)AddExternRouter (LR NBModel.LogicalRouter, ports map[string]ex
     exR:= &externalmodel.ExternRouter{
         UUID:LR.UUID,
         InternalRouter: &LR,
+        SubNetworks: make(map[string]externalmodel.NetInt), // 초기화
     }
     
     // subNetworks 초기화
@@ -193,6 +198,7 @@ func (o* Operator)AddExternRouter (LR NBModel.LogicalRouter, ports map[string]ex
     }
     
     o.ExternRouters[LR.UUID] = exR
+    
     fmt.Printf("Added ExternRouter: UUID=%s, connected ports=%d\n", LR.UUID, portCount)
     return nil
 }
@@ -289,8 +295,8 @@ func (o* Operator) InitialSetting()(error){
 	}
 	
 	InterPort:= externalmodel.RtoSwitchPort{
-		ConnectedRouter: o.ExternRouters[EXTS_uuid],
-		ConnectedSwitch: o.ExternSwitchs[EXTR_uuid],
+		ConnectedRouter: o.ExternRouters[EXTR_uuid],  // 라우터 UUID로 라우터 찾기
+		ConnectedSwitch: o.ExternSwitchs[EXTS_uuid],  // 스위치 UUID로 스위치 찾기
 	}
 	SwitchPort, err := o.AddSwitchAPort_Router(EXTS_uuid, lrpuuid.String(), lspuuid.String())
 	if err != nil {
