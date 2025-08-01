@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"time"
+	"slices"
 
 	externalmodel "github.com/kwonkwonn/ovn-go-cms/ovs/externalModel"
 	NBModel "github.com/kwonkwonn/ovn-go-cms/ovs/internalModel"
@@ -59,56 +59,174 @@ return nil
 }
 
 func (o* Operator)InitializeLogicalDevices (){
-	o.ExternRouters = make(map[string]*externalmodel.ExternRouter)
-	o.ExternSwitchs = make(map[string]*externalmodel.ExternSwitch)
+    o.ExternRouters = make(map[string]*externalmodel.ExternRouter)
+    o.ExternSwitchs = make(map[string]*externalmodel.ExternSwitch)
+    routerPorts :=make(map[string]externalmodel.NetInt)
+    switchPorts :=make(map[string]externalmodel.NetInt)
+    
+    
+    LR :=&[]NBModel.LogicalRouter{}
+    LS :=&[]NBModel.LogicalSwitch{}
+    RPort := &[]NBModel.LogicalRouterPort{}
+    SPort:= &[]NBModel.LogicalSwitchPort{}
 
-	LR :=&[]NBModel.LogicalRouter{}
-	LS :=&[]NBModel.LogicalSwitch{}
+    err:= o.Client.List(context.Background(), LS )
+    if err!=nil{
+        fmt.Println(fmt.Errorf("error listing logical switches: %v", err))
+        return
+    }
+    err= o.Client.List(context.Background(), LR)
+    if err!=nil{
+        fmt.Println(fmt.Errorf("error listing logical routers: %v", err))
+        return
+    }
+    err = o.Client.List(context.Background(), RPort)
+    if err != nil {
+        fmt.Println(fmt.Errorf("error listing logical router ports: %v", err))
+        return
+    }
+    err = o.Client.List(context.Background(), SPort)
+    if err != nil {
+        fmt.Println(fmt.Errorf("error listing logical switch ports: %v", err))
+        return
+    }
 
-	err:= o.Client.List(context.Background(), LS )
-	if err!=nil{
-		fmt.Println(fmt.Errorf("%v", err))
-	}
-	err= o.Client.List(context.Background(), LR)
-	if err!=nil{
-		fmt.Println(fmt.Errorf("%v", err))
-	}
-	time.Sleep(2 * time.Second) // 2초 대기
-	for i:=range *LR{
-		o.AddExternRouter((*LR)[i])
-	}
-	for i:=range *LS{
-		o.AddExternSwitch((*LS)[i])
-	}
+    fmt.Printf("Found %d routers, %d switches, %d router ports, %d switch ports\n", 
+        len(*LR), len(*LS), len(*RPort), len(*SPort))
+
+    // 먼저 스위치 포트들을 분류하고 매핑
+    for i:= range *SPort {
+        port := &(*SPort)[i]
+        fmt.Printf("Processing switch port: UUID=%s, Type=%s, Addresses=%v\n", 
+            port.UUID, port.Type, port.Addresses)
+
+        if slices.Contains(port.Addresses,"router"){
+            // router-port 옵션이 있는지 확인
+            routerPortUUID, ok := port.Options["router-port"]
+            if !ok {
+                fmt.Printf("Warning: router type port %s missing router-port option\n", port.UUID)
+                continue
+            }
+
+            RtoS:= externalmodel.RtoSwitchPort{
+                SwitchPort: &externalmodel.SwitchPort{
+                    UUID: port.UUID,
+                },
+                RouterPort: &externalmodel.RouterPort{
+                    UUID: routerPortUUID,
+                },
+            }
+            switchPorts[RtoS.SwitchPort.UUID] = RtoS
+            routerPorts[RtoS.RouterPort.UUID] = RtoS
+            fmt.Printf("Added router-switch connection: SwitchPort=%s, RouterPort=%s\n", 
+                RtoS.SwitchPort.UUID, RtoS.RouterPort.UUID)
+
+        } else if port.Type == "vif" {
+            StoVM := externalmodel.StoVMPort{				
+                SwitchPort: &externalmodel.SwitchPort{
+                    UUID: port.UUID,
+                },
+            }
+            switchPorts[StoVM.SwitchPort.UUID] = StoVM
+            fmt.Printf("Added VIF port: %s\n", StoVM.SwitchPort.UUID)
+
+        } else {
+            fmt.Printf("Skipping port: UUID=%s, Type=%s\n", port.UUID, port.Type)
+            continue
+        }
+    }
+
+    fmt.Printf("Created %d router port mappings, %d switch port mappings\n", 
+        len(routerPorts), len(switchPorts))
+
+    // 라우터들을 ExternRouter로 변환
+    for i:=range *LR{
+        router := (*LR)[i]
+        fmt.Printf("Processing router: UUID=%s, Name=%s, Ports=%v\n", 
+            router.UUID, router.Name, router.Ports)
+        
+        err := o.AddExternRouter(router, routerPorts)
+        if err != nil {
+            fmt.Printf("Error adding extern router %s: %v\n", router.UUID, err)
+        }
+    }
+
+    // 스위치들을 ExternSwitch로 변환
+    for i:=range *LS{
+        switchObj := (*LS)[i]
+        fmt.Printf("Processing switch: UUID=%s, Name=%s, Ports=%v\n", 
+            switchObj.UUID, switchObj.Name, switchObj.Ports)
+        
+        err := o.AddExternSwitch(switchObj, switchPorts)
+        if err != nil {
+            fmt.Printf("Error adding extern switch %s: %v\n", switchObj.UUID, err)
+        }
+    }
+
+    fmt.Printf("Initialization complete: %d routers, %d switches registered\n", 
+        len(o.ExternRouters), len(o.ExternSwitchs))
 }
 
-func (o* Operator)AddExternRouter (LR NBModel.LogicalRouter)error {
-	exR:= &externalmodel.ExternRouter{
-		UUID:LR.UUID,
-		InternalRouter: &LR,
-	}
+func (o* Operator)AddExternRouter (LR NBModel.LogicalRouter, ports map[string]externalmodel.NetInt)error {
+    exR:= &externalmodel.ExternRouter{
+        UUID:LR.UUID,
+        InternalRouter: &LR,
+    }
+    
+    // subNetworks 초기화
+    if exR.InternalRouter != nil {
+        // subNetworks를 초기화 (private 필드이므로 reflection이나 public method 필요)
+        // 임시로 빈 맵으로 설정
+    }
 
-	o.ExternRouters[LR.UUID] = exR
-	// if len(exR.InternalRouter.Ports)!=0{
-	// 	ports:= &[]NBModel.LogicalRouterPort{}
-	// 	o.Client.List(context.Background(),ports)
-
-	// }
-	return nil
+    // 라우터의 각 포트에 대해 연결 정보 설정
+    portCount := 0
+    for _, portUUID := range LR.Ports {
+        if netInt, ok := ports[portUUID]; ok {
+            // 포트가 존재하면 연결 정보 설정
+            if rtoS, ok := netInt.(externalmodel.RtoSwitchPort); ok {
+                rtoS.ConnectedRouter = exR
+                fmt.Printf("Connected router port %s to router %s\n", portUUID, LR.UUID)
+                portCount++
+            }
+        }
+    }
+    
+    o.ExternRouters[LR.UUID] = exR
+    fmt.Printf("Added ExternRouter: UUID=%s, connected ports=%d\n", LR.UUID, portCount)
+    return nil
 }
 
-func (o* Operator)AddExternSwitch (LS NBModel.LogicalSwitch) error{
-	exS:=&externalmodel.ExternSwitch{
-		UUID: LS.UUID,
-		//IP: yaml에서 읽어서 할당
-		InternalSwitch: &LS,
-	}
-	o.IPMapping[exS.IP] = exS.UUID 
-	o.ExternSwitchs[LS.UUID]=exS
+func (o* Operator)AddExternSwitch (LS NBModel.LogicalSwitch, ports map[string]externalmodel.NetInt) error{
+    exS:=&externalmodel.ExternSwitch{
+        UUID: LS.UUID,
+        InternalSwitch: &LS,
+    }
 
-	return nil
-	// switch메소드에 필요한 필드의 유무를 찾고 추가하는 함수를 넣을 예정
+    // 스위치의 각 포트에 대해 연결 정보 설정
+    portCount := 0
+    for _, portUUID := range LS.Ports {
+        if netInt, ok := ports[portUUID]; ok {
+            // 포트 타입에 따라 연결 정보 설정
+            switch port := netInt.(type) {
+            case externalmodel.RtoSwitchPort:
+                port.ConnectedSwitch = exS
+                fmt.Printf("Connected router-switch port %s to switch %s\n", portUUID, LS.UUID)
+                portCount++
+            case externalmodel.StoVMPort:
+                port.ConnectedSwitch = exS
+                fmt.Printf("Connected VM port %s to switch %s\n", portUUID, LS.UUID)
+                portCount++
+            }
+        }
+    }
+
+    o.ExternSwitchs[LS.UUID] = exS
+    fmt.Printf("Added ExternSwitch: UUID=%s, connected ports=%d\n", LS.UUID, portCount)
+    return nil
 }
+
+
 
 
 func (o * Operator) AddInterconnectR_S(lsUUID string, lrUUID string, ip string)(error){
@@ -121,25 +239,34 @@ func (o * Operator) AddInterconnectR_S(lsUUID string, lrUUID string, ip string)(
         panic("lrpuuid generating error" )
     }
 
-    err = o.AddSwitchAPort_Router(lsUUID, lrpuuid.String(), lspuuid.String())
+	InterPort:= externalmodel.RtoSwitchPort{
+		ConnectedRouter: o.ExternRouters[lrUUID],
+		ConnectedSwitch: o.ExternSwitchs[lsUUID],
+	}
+
+    SP,err := o.AddSwitchAPort_Router(lsUUID, lrpuuid.String(), lspuuid.String())
     if err != nil {
         fmt.Printf("AddInterconnectR_S ERROR: Error in AddSwitchAPort_Router: %v\n", err)
         return err
     }
 
 
-    err = o.AddRouterPort(lrUUID, lrpuuid.String(),ip)
+    routerPort, err := o.AddRouterPort(lrUUID, lrpuuid.String(),ip)
     if err != nil {
         fmt.Printf("AddInterconnectR_S ERROR: Error in AddRouterPort: %v\n", err)
         return err
     }
+	InterPort.RouterPort = routerPort
+	InterPort.SwitchPort = SP
+
+	externalmodel.AddNetInt(o.ExternRouters,ip , InterPort)
 
     return nil
 }
 
-func (o* Operator) InitialSettig()(error){
-	
-		EXTS_uuid,err:= o.AddSwitch("EXT_S")
+func (o* Operator) InitialSetting()(error){
+
+		EXTS_uuid,err:= o.AddSwitch()//"EXT_S"
 		if (err!=nil){
 			panic("bootstraping failed, creating external Switch")
 		}
@@ -161,17 +288,25 @@ func (o* Operator) InitialSettig()(error){
 			panic("lrpuuid generating error" )
 	}
 	
-	err = o.AddSwitchAPort_Router(EXTS_uuid, lrpuuid.String(), lspuuid.String())
+	InterPort:= externalmodel.RtoSwitchPort{
+		ConnectedRouter: o.ExternRouters[EXTS_uuid],
+		ConnectedSwitch: o.ExternSwitchs[EXTR_uuid],
+	}
+	SwitchPort, err := o.AddSwitchAPort_Router(EXTS_uuid, lrpuuid.String(), lspuuid.String())
 	if err != nil {
 		fmt.Printf("AddInterconnectR_S ERROR: Error in AddSwitchAPort_Router: %v\n", err)
 		return err
 	}
-		
-	err = o.AddRouterPort(EXTR_uuid, lrpuuid.String(),string(ROUTER))
+
+	routerPort, err := o.AddRouterPort(EXTR_uuid, lrpuuid.String(), string(ROUTER))
 	if err != nil {
 			fmt.Printf("AddInterconnectR_S ERROR: Error in AddRouterPort: %v\n", err)
 			return err
 	}
+	InterPort.SwitchPort = SwitchPort
+	InterPort.RouterPort = routerPort
+
+	externalmodel.AddNetInt(o.ExternRouters, string(ROUTER), InterPort)
 
 	err= o.ChassisInitializing(lrpuuid.String())
 	if err!= nil{
@@ -212,7 +347,7 @@ func (o* Operator) InitialSettig()(error){
 		Value: value.InternalSwitch.Ports,	
 		
 	}) 
-	o.IPMapping[string(UPLINK)]= newSP.UUID
+//	o.IPMapping[string(UPLINK)]= newSP.UUID
 	 
 	lsp = append(lsp, lsMute...)
 	result,err := o.Client.Transact(context.Background(),lsp...)
@@ -221,13 +356,9 @@ func (o* Operator) InitialSettig()(error){
 	}
 	fmt.Println(result)
 
-	util.SaveMapYaml(o.IPMapping)
 	
 	//ip가 할당되는 순간 Map 에 저장
 
-	for _,i:= range o.IPMapping{
-		fmt.Println(i)
-	}
 	command := "ovn-nbctl" 
     args := []string{
 		"lr-route-add",
