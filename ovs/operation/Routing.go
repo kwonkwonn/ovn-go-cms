@@ -76,7 +76,7 @@ func (o *Operator) AddRouterPort(lruuid string ,lrpuuid string, ip string)(*exte
         operations=append(operations, ops...)
 
 
-        result, err:= o.Client.Transact(context.Background(),ops...)
+        result, err:= o.Client.Transact(context.Background(),operations...)
         if err!=nil{
             return nil,fmt.Errorf("creating logical router port transaction error: %v, result: %+v",err, result)
         }

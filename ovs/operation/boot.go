@@ -353,6 +353,7 @@ func (o* Operator) InitialSetting()(error){
 	result,err := o.Client.Transact(context.Background(),lsp...)
 	if err!=nil{
 		fmt.Println("the problem is...", err)
+		return fmt.Errorf("transact error %v", err)
 	}
 	fmt.Println(result)
 
@@ -366,8 +367,10 @@ func (o* Operator) InitialSetting()(error){
 		"0.0.0.0/0",
 		string(DEFAULT_GATEWAY),
     }
-
+	// 커맨드 실행
     cmd := exec.Command(command, args...) 
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
     err = cmd.Run()
     if err != nil {
         return fmt.Errorf("error creating router command, %v", err)

@@ -30,10 +30,15 @@ func main(){
 	Operator.ExternSwitchs = make(map[string]*externalmodel.ExternSwitch,0)
 
 	Operator.InitializeLogicalDevices()
-//	초기화 조건 추가
-// 
-// 	// Chassis 초기화
+	if len(Operator.ExternRouters) == 0 && len(Operator.ExternSwitchs) == 0 {
+		err:= Operator.InitialSetting()
+		if err != nil {
+			panic("initialize error: " + err.Error())
+		}
+	}
 
+	fmt.Println("ExternRouters: ", Operator.ExternRouters)
+	fmt.Println("ExternSwitchs: ", Operator.ExternSwitchs)
 	handler:=service.Handler{
 		Operator: Operator,
 
