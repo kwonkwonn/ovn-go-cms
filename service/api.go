@@ -33,10 +33,15 @@ func (h *Handler) CreateNewVm(w  http.ResponseWriter,r *http.Request ){
 		w.Write([]byte(err.Error()))
 		return
 	}
+    fmt.Println("zxvavasdvdsas", h.Operator.ExternRouters[string(operation.ROUTER)].SubNetworks)
 
 	newIP := externalmodel.FindRemainIP(h.Operator.ExternRouters, request.RequestSubnet, externalmodel.VIF)
 	fmt.Println(newIP)
 
+	interconnectInt := externalmodel.GetNetInt(h.Operator.ExternRouters, request.RequestSubnet+"1")
+
+
+	
 	InstUUID, err := util.UUIDGenerator()
 	if err != nil 	{
 		fmt.Println("no such switch exist")
@@ -52,7 +57,6 @@ func (h *Handler) CreateNewVm(w  http.ResponseWriter,r *http.Request ){
 	}
 	fmt.Println(mac)
 
-	interconnectInt := externalmodel.GetNetInt(h.Operator.ExternRouters, request.RequestSubnet)
 	switchs := interconnectInt[0].(externalmodel.RtoSwitchPort).ConnectedSwitch
 	err = h.Operator.SwitchesPortConnect([]string{switchs.UUID}, newIP, InstUUID.String(), mac)
 	if err != nil {
@@ -109,9 +113,9 @@ func (h *Handler) CreateNewNetVm(w http.ResponseWriter,r *http.Request ){
 
 
 	VifIP := externalmodel.FindRemainIP(h.Operator.ExternRouters, request.RequestSubnet, externalmodel.VIF)
-	fmt.Println(VifIP)
+	fmt.Println("ip found" + VifIP)
 	SwitchPortIP :=externalmodel.FindRemainIP(h.Operator.ExternRouters, request.RequestSubnet, externalmodel.SWITCH)
-	
+	fmt.Println("ip found" + SwitchPortIP)
 
  	swUUID,err := h.Operator.AddSwitch()
 	if err!=nil{
@@ -135,6 +139,7 @@ func (h *Handler) CreateNewNetVm(w http.ResponseWriter,r *http.Request ){
 		fmt.Println(err)
 	}
 
+    fmt.Println("zxvavasdvdsas", h.Operator.ExternRouters[string(operation.ROUTER)].SubNetworks)
 
 	_, err = h.Operator.AddSwitchAPort(swUUID, VifIP, InstUUID.String(), mac)
 	if err != nil {
@@ -154,6 +159,7 @@ func (h *Handler) CreateNewNetVm(w http.ResponseWriter,r *http.Request ){
         string(operation.ROUTER),
         request.RequestSubnet+"0/24",
     }
+    fmt.Println("zxvavasdvdsas", h.Operator.ExternRouters[string(operation.ROUTER)].SubNetworks)
 
 
     cmd := exec.Command(command, args...) // `exec.Command`는 명령어와 인자를 분리해서 받는 것이 더 안전합니다.

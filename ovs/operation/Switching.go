@@ -48,9 +48,6 @@ func (o * Operator) AddSwitchAPort(SWUUID string, InstanceIP string, uuid string
 
 	externalmodel.AddNetInt(o.ExternRouters, InstanceIP, VIF)
 
-
-
-	// util.SaveMapYaml(o.IPMapping)
 	
 
 	return SP,nil

@@ -10,7 +10,6 @@ import (
 	externalmodel "github.com/kwonkwonn/ovn-go-cms/ovs/externalModel"
 	NBModel "github.com/kwonkwonn/ovn-go-cms/ovs/internalModel"
 	"github.com/kwonkwonn/ovn-go-cms/ovs/util"
-	"github.com/ovn-kubernetes/libovsdb/model"
 	"github.com/ovn-kubernetes/libovsdb/ovsdb"
 	"gopkg.in/yaml.v3"
 )
@@ -91,17 +90,10 @@ func (o* Operator)InitializeLogicalDevices (){
         return
     }
 
-    fmt.Printf("Found %d routers, %d switches, %d router ports, %d switch ports\n", 
-        len(*LR), len(*LS), len(*RPort), len(*SPort))
-
-    // 먼저 스위치 포트들을 분류하고 매핑
     for i:= range *SPort {
         port := &(*SPort)[i]
-        fmt.Printf("Processing switch port: UUID=%s, Type=%s, Addresses=%v\n", 
-            port.UUID, port.Type, port.Addresses)
-
+ 
         if slices.Contains(port.Addresses,"router"){
-            // router-port 옵션이 있는지 확인
             routerPortUUID, ok := port.Options["router-port"]
             if !ok {
                 fmt.Printf("Warning: router type port %s missing router-port option\n", port.UUID)
@@ -118,8 +110,6 @@ func (o* Operator)InitializeLogicalDevices (){
             }
             switchPorts[RtoS.SwitchPort.UUID] = RtoS
             routerPorts[RtoS.RouterPort.UUID] = RtoS
-            fmt.Printf("Added router-switch connection: SwitchPort=%s, RouterPort=%s\n", 
-                RtoS.SwitchPort.UUID, RtoS.RouterPort.UUID)
 
         } else if port.Type == "vif" {
             StoVM := externalmodel.StoVMPort{				
@@ -128,17 +118,11 @@ func (o* Operator)InitializeLogicalDevices (){
                 },
             }
             switchPorts[StoVM.SwitchPort.UUID] = StoVM
-            fmt.Printf("Added VIF port: %s\n", StoVM.SwitchPort.UUID)
 
-        } else {
-            fmt.Printf("Skipping port: UUID=%s, Type=%s\n", port.UUID, port.Type)
-            continue
         }
     }
 
-    fmt.Printf("Created %d router port mappings, %d switch port mappings\n", 
-        len(routerPorts), len(switchPorts))
-
+ 
     // 라우터들을 ExternRouter로 변환
     for i:=range *LR{
         router := (*LR)[i]
@@ -154,8 +138,6 @@ func (o* Operator)InitializeLogicalDevices (){
     // 스위치들을 ExternSwitch로 변환
     for i:=range *LS{
         switchObj := (*LS)[i]
-        fmt.Printf("Processing switch: UUID=%s, Name=%s, Ports=%v\n", 
-            switchObj.UUID, switchObj.Name, switchObj.Ports)
         
         err := o.AddExternSwitch(switchObj, switchPorts)
         if err != nil {
@@ -171,15 +153,14 @@ func (o* Operator)AddExternRouter (LR NBModel.LogicalRouter, ports map[string]ex
     exR:= &externalmodel.ExternRouter{
         UUID:LR.UUID,
         InternalRouter: &LR,
-    }
-    
-    // subNetworks 초기화
-    if exR.InternalRouter != nil {
-        // subNetworks를 초기화 (private 필드이므로 reflection이나 public method 필요)
-        // 임시로 빈 맵으로 설정
+		SubNetworks: make(map[string]externalmodel.NetInt),
     }
 
-    // 라우터의 각 포트에 대해 연결 정보 설정
+	for _,port:= range ports{
+
+	}
+
+    
     portCount := 0
     for _, portUUID := range LR.Ports {
         if netInt, ok := ports[portUUID]; ok {
@@ -190,6 +171,7 @@ func (o* Operator)AddExternRouter (LR NBModel.LogicalRouter, ports map[string]ex
                 portCount++
             }
         }
+
     }
     
     o.ExternRouters[LR.UUID] = exR
@@ -207,7 +189,6 @@ func (o* Operator)AddExternSwitch (LS NBModel.LogicalSwitch, ports map[string]ex
     portCount := 0
     for _, portUUID := range LS.Ports {
         if netInt, ok := ports[portUUID]; ok {
-            // 포트 타입에 따라 연결 정보 설정
             switch port := netInt.(type) {
             case externalmodel.RtoSwitchPort:
                 port.ConnectedSwitch = exS
@@ -288,10 +269,7 @@ func (o* Operator) InitialSetting()(error){
 			panic("lrpuuid generating error" )
 	}
 	
-	InterPort:= externalmodel.RtoSwitchPort{
-		ConnectedRouter: o.ExternRouters[EXTS_uuid],
-		ConnectedSwitch: o.ExternSwitchs[EXTR_uuid],
-	}
+
 	SwitchPort, err := o.AddSwitchAPort_Router(EXTS_uuid, lrpuuid.String(), lspuuid.String())
 	if err != nil {
 		fmt.Printf("AddInterconnectR_S ERROR: Error in AddSwitchAPort_Router: %v\n", err)
@@ -303,8 +281,12 @@ func (o* Operator) InitialSetting()(error){
 			fmt.Printf("AddInterconnectR_S ERROR: Error in AddRouterPort: %v\n", err)
 			return err
 	}
-	InterPort.SwitchPort = SwitchPort
-	InterPort.RouterPort = routerPort
+		InterPort:= externalmodel.RtoSwitchPort{
+		ConnectedRouter: o.ExternRouters[EXTS_uuid],
+		ConnectedSwitch: o.ExternSwitchs[EXTR_uuid],
+		SwitchPort: SwitchPort,
+		RouterPort: routerPort,
+	}
 
 	externalmodel.AddNetInt(o.ExternRouters, string(ROUTER), InterPort)
 
@@ -319,45 +301,39 @@ func (o* Operator) InitialSetting()(error){
 		return fmt.Errorf("generating uuid error: br_exts_uuid")
 	}
 	
-	//Addswitch port 함수의 복사본, 함수화가 아직 부족해서 복붙함
-	// 리팩토링 대상 1번 
-	value ,ok := o.ExternSwitchs[EXTS_uuid]; 
-	if !ok{
-		return fmt.Errorf("no such switch exist")
+
+	newSP:=&externalmodel.SwitchPort{}
+
+	operations:= []ovsdb.Operation{}
+	ops,err:= newSP.Create(o.Client, br_EXTS_UUID.String(),"localnet", "unknown", map[string]string{
+		"network_name": string(UPLINK),
+	})
+	if err != nil {
+		return fmt.Errorf("creating switch port error %v", err)
 	}
 
-	newSP:= &NBModel.LogicalSwitchPort{
-		UUID: br_EXTS_UUID.String(),
-		Name: br_EXTS_UUID.String(),
-		Type: "localnet",
-		Options: map[string]string{"network_name":"UPLINK"},
-		}
-	Address :="unknown"
-	newSP.Addresses=append(newSP.Addresses, Address)
+	operations = append(operations, ops...)
 	
-	lsp , err := o.Client.Create(newSP)
-	if err!=nil{
-		return fmt.Errorf("%v", err)
+	request:= externalmodel.RequestControl{
+		EXRList: o.ExternRouters,
+		EXSList: o.ExternSwitchs,
+		TargetUUID: EXTS_uuid,
+		Client: o.Client,
 	}
 	
-	value.InternalSwitch.Ports = append(value.InternalSwitch.Ports, newSP.UUID)
-	lsMute,_  := o.Client.Where(value.InternalSwitch).Mutate( value.InternalSwitch, model.Mutation{
-		Field: &value.InternalSwitch.Ports,
-		Mutator: ovsdb.MutateOperationInsert,
-		Value: value.InternalSwitch.Ports,	
-		
-	}) 
-//	o.IPMapping[string(UPLINK)]= newSP.UUID
-	 
-	lsp = append(lsp, lsMute...)
-	result,err := o.Client.Transact(context.Background(),lsp...)
+	ops,err = newSP.Connect(request)
+	if err != nil {
+		return fmt.Errorf("connecting switch port error %v", err)
+	}
+	operations = append(operations, ops...)
+
+	result,err := o.Client.Transact(context.Background(),operations...)
 	if err!=nil{
-		fmt.Println("the problem is...", err)
 		return fmt.Errorf("transact error %v", err)
 	}
-	fmt.Println(result)
+	fmt.Println(result)	 
 
-	
+
 	//ip가 할당되는 순간 Map 에 저장
 
 	command := "ovn-nbctl" 

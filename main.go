@@ -55,6 +55,7 @@ func main(){
      Operator.Client.List(context.Background(),portss)
 
     fmt.Println("asfsfidsaofbadsfoisabfsodifsbfa", portss)
+    fmt.Println("zxvavasdvdsas", Operator.ExternRouters[string(operation.ROUTER)].SubNetworks)	
 
 
 	server.InitServer(8081,handler)

@@ -1,7 +1,10 @@
 package externalmodel
 
 import (
+	"strings"
+
 	NBModel "github.com/kwonkwonn/ovn-go-cms/ovs/internalModel"
+	"github.com/kwonkwonn/ovn-go-cms/ovs/util"
 	"github.com/ovn-kubernetes/libovsdb/ovsdb"
 )
 
@@ -21,7 +24,7 @@ type SwitchPort NBModel.LogicalSwitchPort
 type ExternRouter struct {
 	UUID            string
 	InternalRouter  *NBModel.LogicalRouter
-	subNetworks     map[string]NetInt // uuid -> port
+	SubNetworks     map[string]NetInt // uuid -> port
 }
 // 간선 형태의 자료구조..
 // 현재는 기본적인 3-tier 형태로 구성되어 있음
@@ -79,3 +82,22 @@ type Config struct {
 }
 
 
+
+// ovn 에서는 모든 연결 지점이 사실상 하나의 ip를 가짐
+// 기존 네트워크의 20.20.20.1 <------ 20.20.20.2 와 같은 형식이 아님
+// 연결 단위 interface(NetInt)로 ip를 관리함
+
+func (RP RouterPort) RetriveAddress() string {
+	parsedIP, err := util.GetNetworkAddress(RP.Networks[0])
+	if err != nil {
+		return ""
+	}
+	return parsedIP
+}
+
+func (SP SwitchPort) RetriveAddress() string {
+	//"52:54:00:e3:3c:35 20.20.23.11" <-- 이런 형식으로 되어 있음
+	network:= SP.Addresses[0]
+	parsed :=strings.Split(network, " ")
+	return parsed[1] 
+}

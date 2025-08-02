@@ -47,7 +47,7 @@ func (SP *SwitchPort) Create(client client.Client, uuid string,  portType string
 
 func (R *ExternRouter) Create(client client.Client, uuid string) ([]ovsdb.Operation, error) {
 	R.UUID = uuid
-	R.subNetworks = make(map[string]NetInt)
+	R.SubNetworks = make(map[string]NetInt)
 	R.InternalRouter = &NBModel.LogicalRouter{}
 	R.InternalRouter.UUID = uuid
 	R.InternalRouter.Name = uuid
