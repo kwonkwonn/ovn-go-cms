@@ -105,13 +105,8 @@ func (o *Operator) AddRouter(IP string) (string, error) {
 	}
 	fmt.Println(result)
 	
-	o.ExternRouters[RtUUID.String()]=&router
 	o.ExternRouters[IP]=&router
-	// o.IPMapping[IP]=RtUUID.String()
 
-
-	// util.SaveMapYaml(o.IPMapping)
-    // IPMapping에 IP와 UUID를 저장
 	return RtUUID.String(),nil
 
 }

@@ -34,6 +34,7 @@ type ExternRouter struct {
 
 type NetInt interface {
 	GetConnector (portType) Connector
+	RetriveAddress() string
 	// GetDeletor (portType) Deleter
 }
 // 모든 연결 지점은 해당 인터페이스를 구현해야 함
@@ -87,17 +88,17 @@ type Config struct {
 // 기존 네트워크의 20.20.20.1 <------ 20.20.20.2 와 같은 형식이 아님
 // 연결 단위 interface(NetInt)로 ip를 관리함
 
-func (RP RouterPort) RetriveAddress() string {
-	parsedIP, err := util.GetNetworkAddress(RP.Networks[0])
+func (RP RtoSwitchPort) RetriveAddress() string {
+	parsedIP, err := util.GetNetworkAddress(RP.RouterPort.Networks[0])
 	if err != nil {
 		return ""
 	}
 	return parsedIP
 }
 
-func (SP SwitchPort) RetriveAddress() string {
+func (SP StoVMPort) RetriveAddress() string {
 	//"52:54:00:e3:3c:35 20.20.23.11" <-- 이런 형식으로 되어 있음
-	network:= SP.Addresses[0]
+	network:= SP.SwitchPort.Addresses[0]
 	parsed :=strings.Split(network, " ")
 	return parsed[1] 
 }
