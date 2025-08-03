@@ -3,7 +3,6 @@ package externalmodel
 import (
 	"fmt"
 
-	NBModel "github.com/kwonkwonn/ovn-go-cms/ovs/internalModel"
 	"github.com/ovn-kubernetes/libovsdb/model"
 	"github.com/ovn-kubernetes/libovsdb/ovsdb"
 )
@@ -14,9 +13,8 @@ import (
 
 func (LP *RouterPort) Connect(request RequestControl) ([]ovsdb.Operation, error) {
 	Router:= request.EXRList.GetRouter(request.TargetUUID).InternalRouter
-	Router = &NBModel.LogicalRouter{
-		UUID: Router.UUID,
-	}
+
+	Router.Ports= append(Router.Ports, LP.UUID)
 	transactions,err := request.Client.Where(Router).Mutate(Router, model.Mutation{
 		Field: &Router.Ports,
 		Mutator: ovsdb.MutateOperationInsert,
@@ -42,7 +40,7 @@ func (sp SwitchPort) Connect (request RequestControl) ([]ovsdb.Operation, error)
 	lsMute, err := request.Client.Where(targetSwitch.InternalSwitch).Mutate(targetSwitch.InternalSwitch, model.Mutation{
 		Field: &targetSwitch.InternalSwitch.Ports,
 		Mutator: ovsdb.MutateOperationInsert,
-		Value: targetSwitch.InternalSwitch.Ports,
+		Value: []string{sp.UUID},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to mutate switch ports: %w", err)

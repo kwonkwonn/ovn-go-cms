@@ -1,6 +1,7 @@
 package externalmodel
 
 import (
+	NBModel "github.com/kwonkwonn/ovn-go-cms/ovs/internalModel"
 	"github.com/kwonkwonn/ovn-go-cms/ovs/util"
 	"github.com/ovn-kubernetes/libovsdb/client"
 	"github.com/ovn-kubernetes/libovsdb/ovsdb"
@@ -8,9 +9,12 @@ import (
 
 func (ES *ExternSwitch) Create(client client.Client, uuid string) ([]ovsdb.Operation, error) {
 	ES.UUID = uuid
-	ES.InternalSwitch.UUID = uuid
-	ES.InternalSwitch.Name = uuid
-	ES.InternalSwitch.Ports = []string{}
+	ES.InternalSwitch = &NBModel.LogicalSwitch{
+		UUID: uuid,
+		Name: uuid,
+		Ports: []string{},
+	
+	}
 
 	transactions, err := client.Create(ES.InternalSwitch)
 	if err != nil {
@@ -35,7 +39,8 @@ func (SP *SwitchPort) Create(client client.Client, uuid string,  portType string
 			SP.Options[k] = v
 		}
 	}
-	transactions, err := client.Create(SP)
+	LSP:= NBModel.LogicalSwitchPort(*SP)
+	transactions, err := client.Create(&LSP)
 	if err != nil {
 		return nil, err
 	}
@@ -44,9 +49,13 @@ func (SP *SwitchPort) Create(client client.Client, uuid string,  portType string
 
 func (R *ExternRouter) Create(client client.Client, uuid string) ([]ovsdb.Operation, error) {
 	R.UUID = uuid
-	R.InternalRouter.UUID = uuid
-	R.InternalRouter.Name = uuid
-	R.InternalRouter.Ports = []string{}
+	R.SubNetworks = make(map[string]NetInt)
+	R.InternalRouter = &NBModel.LogicalRouter{
+		UUID: uuid,
+		Name: uuid,
+		Ports: []string{},
+	}
+
 
 	transactions, err := client.Create(R.InternalRouter)
 	if err != nil {
@@ -63,8 +72,8 @@ func (RP *RouterPort)Create(client client.Client,uuid string, ip string) ([]ovsd
 	RP.Name = uuid
 	RP.MAC = mac
 	RP.Networks = []string{ip + "/24"}
-	
-	transactions, err := client.Create(RP)
+	lRP := NBModel.LogicalRouterPort(*RP)
+	transactions, err := client.Create(&lRP)
 	if err != nil {
 		return nil, err
 	}
