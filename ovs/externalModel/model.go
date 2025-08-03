@@ -35,7 +35,7 @@ type ExternRouter struct {
 type NetInt interface {
 	GetConnector (portType) Connector
 	RetriveAddress() string
-	// GetDeletor (portType) Deleter
+	GetDeletor (portType) Deleter
 }
 // 모든 연결 지점은 해당 인터페이스를 구현해야 함
 
@@ -43,14 +43,15 @@ type Connector interface {
 	Connect(RequestControl) ([]ovsdb.Operation,error)
 }
 
-// type Deleter interface {
-// 	Delete(RequestControl) ([]ovsdb.Operation,error)
-// }
+type Deleter interface {
+	Delete(RequestControl) ([]ovsdb.Operation,error)
+}
 type RtoSwitchPort struct {
 	ConnectedRouter *ExternRouter
 	ConnectedSwitch *ExternSwitch
 	SwitchPort      *SwitchPort
 	RouterPort      *RouterPort
+	NatConnected    string
 }
 
 type StoVMPort struct {
@@ -89,7 +90,7 @@ type Config struct {
 // 연결 단위 interface(NetInt)로 ip를 관리함
 
 func (RP RtoSwitchPort) RetriveAddress() string {
-	parsedIP, err := util.GetNetWorkInterface(RP.RouterPort.Networks[0])
+	parsedIP, err := util.GetNetWorkSignifier(RP.RouterPort.Networks[0])
 	if err != nil {
 		return ""
 	}

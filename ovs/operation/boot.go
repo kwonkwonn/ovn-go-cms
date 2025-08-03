@@ -242,10 +242,7 @@ func (o * Operator) AddInterconnectR_S(lsUUID string, lrUUID string, ip string)(
         panic("lrpuuid generating error" )
     }
 
-	InterPort:= externalmodel.RtoSwitchPort{
-		ConnectedRouter: o.ExternRouters[lrUUID],
-		ConnectedSwitch: o.ExternSwitchs[lsUUID],
-	}
+
 
     SP,err := o.AddSwitchAPort_Router(lsUUID, lrpuuid.String(), lspuuid.String())
     if err != nil {
@@ -253,14 +250,28 @@ func (o * Operator) AddInterconnectR_S(lsUUID string, lrUUID string, ip string)(
         return err
     }
 
-
-    routerPort, err := o.AddRouterPort(lrUUID, lrpuuid.String(),ip)
+    natuuid,err:= util.UUIDGenerator()
+    if err!=nil{
+        fmt.Printf("AddInterconnectR_S ERROR: generating uuid error: %v\n", err)
+        return err
+    }
+    routerPort, err := o.AddRouterPort(lrUUID, lrpuuid.String(), natuuid.String(), ip)
     if err != nil {
         fmt.Printf("AddInterconnectR_S ERROR: Error in AddRouterPort: %v\n", err)
         return err
     }
-	InterPort.RouterPort = routerPort
-	InterPort.SwitchPort = SP
+
+
+
+
+    InterPort:= &externalmodel.RtoSwitchPort{
+		ConnectedRouter: o.ExternRouters[lrUUID],
+		ConnectedSwitch: o.ExternSwitchs[lsUUID],
+        RouterPort: routerPort,
+		SwitchPort: SP,
+        NatConnected: natuuid.String(),
+	}
+
 
 	externalmodel.AddNetInt(o.ExternRouters,ip , InterPort)
 
@@ -292,26 +303,36 @@ func (o* Operator) InitialSetting()(error){
         return fmt.Errorf("lspuuid generating error: %v", err)
     }
 
+
+
     SwitchPort, err := o.AddSwitchAPort_Router(EXTS_uuid, lrpuuid.String(), lspuuid.String())
     if err != nil {
         return fmt.Errorf("error in AddSwitchAPort_Router: %v", err)
     }
+    natuuid, err := util.UUIDGenerator()
+    if err != nil {
+        return fmt.Errorf("generating uuid error: %v", err)
+    }
 
-    routerPort, err := o.AddRouterPort(EXTR_uuid, lrpuuid.String(), string(ROUTER))
+    routerPort, err := o.AddRouterPort(EXTR_uuid, lrpuuid.String(), natuuid.String(), string(ROUTER))
     if err != nil {
         return fmt.Errorf("error in AddRouterPort: %v", err)
     }
 
-    // 포인터로 생성
-    InterPort:= &externalmodel.RtoSwitchPort{
+
+        InterPort := &externalmodel.RtoSwitchPort{
         ConnectedRouter: o.ExternRouters[EXTR_uuid],
         ConnectedSwitch: o.ExternSwitchs[EXTS_uuid],
         SwitchPort: SwitchPort,
         RouterPort: routerPort,
+        NatConnected: natuuid.String(),
     }
 
+    o.ExternRouters[string(ROUTER)].SubNetworks[string(ROUTER)] = InterPort
+    // 포인터로 생성
+
+
     // SubNetworks에 직접 추가
-    o.ExternRouters[EXTR_uuid].SubNetworks[string(ROUTER)] = InterPort
 
     err= o.ChassisInitializing(lrpuuid.String())
     if err!= nil{

@@ -14,6 +14,10 @@ import (
 
 func (LP *RouterPort) Connect(request RequestControl) ([]ovsdb.Operation, error) {
 	Router:= request.EXRList.GetRouter(request.TargetUUID).InternalRouter
+	if Router == nil {
+		return nil, fmt.Errorf("no such router found") // No router to connect to
+	}
+	
 	Router = &NBModel.LogicalRouter{
 		UUID: Router.UUID,
 	}

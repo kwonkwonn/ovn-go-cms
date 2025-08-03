@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"os/exec"
 
 	externalmodel "github.com/kwonkwonn/ovn-go-cms/ovs/externalModel"
 	"github.com/kwonkwonn/ovn-go-cms/ovs/operation"
@@ -44,7 +42,7 @@ func (h *Handler) CreateNewVm(w  http.ResponseWriter,r *http.Request ){
 	
 	InstUUID, err := util.UUIDGenerator()
 	if err != nil 	{
-		fmt.Println("no such switch exist")
+		fmt.Println("uuid generating error: switch port uuid")
 	}
 
 
@@ -57,7 +55,7 @@ func (h *Handler) CreateNewVm(w  http.ResponseWriter,r *http.Request ){
 	}
 	fmt.Println(mac)
 
-	switchs := interconnectInt[0].(externalmodel.RtoSwitchPort).ConnectedSwitch
+	switchs := interconnectInt[0].(*externalmodel.RtoSwitchPort).ConnectedSwitch
 	err = h.Operator.SwitchesPortConnect([]string{switchs.UUID}, newIP, InstUUID.String(), mac)
 	if err != nil {
 		fmt.Println(err)
@@ -150,28 +148,6 @@ func (h *Handler) CreateNewNetVm(w http.ResponseWriter,r *http.Request ){
 
 
 
-
-	command:= "ovn-nbctl" 
-    args := []string{
-        "lr-nat-add",
-        h.Operator.ExternRouters[routerUUID].UUID,
-        "snat",
-        string(operation.ROUTER),
-        request.RequestSubnet+"0/24",
-    }
-    fmt.Println("zxvavasdvdsas", h.Operator.ExternRouters[string(operation.ROUTER)].SubNetworks)
-
-
-    cmd := exec.Command(command, args...) // `exec.Command`는 명령어와 인자를 분리해서 받는 것이 더 안전합니다.
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-    err = cmd.Run()
-    if err != nil {
-        fmt.Println("error creating router command", err)
-    }
-
-
-
 	result := &NewInstanceResult{
 		MacAddress: mac,
 		IP: VifIP,
@@ -199,116 +175,106 @@ func (h *Handler) DeleteAll (w http.ResponseWriter, r* http.Request){
 
 
 
-// func (h *Handler) DelNetVM(w http.ResponseWriter, r *http.Request) {
-// 	body,err:= io.ReadAll(r.Body)
-// 	if err!=nil{
-// 		fmt.Println("del switch error")
-// 		w.Write([]byte(err.Error()))
-// 		return
-// 	}
-// 	defer r.Body.Close()
-// 	request:= &DelInstanceRequest{}
-// 	err= json.Unmarshal(body, request)
-// 	if err!=nil{
-// 		fmt.Println("del switch error")
-// 		w.Write([]byte(err.Error()))
-// 		return
-// 	}
-// 	NetInterface,err:=util.GetNetWorkInterface(request.IP)
-// 	if err!=nil{
-// 		fmt.Println("del switch error")
-// 		w.Write([]byte(err.Error()))
-// 		return
-// 	}
-
-// 	count :=0
-// 	for i:= 11; i<=254; i++{
-// 		IP := NetInterface+strconv.Itoa(i)
-// 		_,ok:= h.Operator.IPMapping[IP]
-// 		if !ok{
-// 			continue
-// 		}
-// 		count++
-// 		if count >=2{
-// 			fmt.Println("more than 2 devices exist, cannot delete")
-// 			w.Write([]byte(fmt.Errorf("more than 2 devices exist, cannot delete").Error()))
-// 			return
-// 		}
-// 	}
-// 	if count == 0{
-// 		fmt.Println("no such device exist byungsn")
-// 		w.Write([]byte(fmt.Errorf("no such device exist").Error()))
-// 		return
-// 	}
-
-// 	err= h.Operator.DelSwitch(h.Operator.IPMapping[NetInterface+"1"])
-// 	if err!=nil{
-// 		fmt.Println("del switch error")
-// 		w.Write([]byte(err.Error()))
-// 		return
-// 	}
-
-// 	err= h.Operator.DelRouterPort(NetInterface+"1")
-// 	if err!=nil{
-// 		fmt.Println("del router port error")
-// 		w.Write([]byte(err.Error()))
-// 		return
-// 	}
+func (h *Handler) DelNet(w http.ResponseWriter, r *http.Request) {
+	body,err:= io.ReadAll(r.Body)
+	if err!=nil{
+		fmt.Println("del switch error")
+		w.Write([]byte(err.Error()))
+		return
+	}
+	defer r.Body.Close()
+	request:= &DelInstanceRequest{}
+	err= json.Unmarshal(body, request)
+	if err!=nil{
+		fmt.Println("del switch error")
+		w.Write([]byte(err.Error()))
+		return
+	}
 
 
-// 	result := &DelInstanceResult{
-// 		Detail: fmt.Errorf("delete vm success"),
-// 	}
-// 	data,err:= json.Marshal(result)
-// 	if err!=nil{
-// 		fmt.Printf("%v",fmt.Errorf("http sending error, cleanning"))
-// 		w.Write([]byte(fmt.Errorf("http sending error, cleanning").Error()))
-// 		return
-// 	}
-// 	w.Header().Set("Content-Type", "application/json")
-// 	w.WriteHeader(http.StatusOK)
-// 	w.Write(data)
-// 	fmt.Println("delete vm success")
+	NetSignifier,err:=util.GetNetWorkSignifier(request.IP)
+	if err!=nil{
+		fmt.Println("del switch error")
+		w.Write([]byte(err.Error()))
+		return
+	}
 
-// }
+	NetInt := externalmodel.GetNetInt(h.Operator.ExternRouters,request.IP)
+	if len(NetInt) == 0 {
+		fmt.Println("no such switch exist")
+		w.Write([]byte(fmt.Errorf("no such switch exist").Error()))
+		return
+	}
+
+	_,ok := NetInt[0].(*externalmodel.RtoSwitchPort)
+	if ok {
+		w.Write([]byte(fmt.Errorf("cannot delete switch port, connected to router").Error()))
+		return
+	}
+	Port,ok := NetInt[0].(*externalmodel.StoVMPort)
+	if !ok {
+		fmt.Println("no such switch port exist")
+		w.Write([]byte(fmt.Errorf("no such switch port exist").Error()))
+		return
+	}
+
+	SwitchPort := Port.ConnectedSwitch
+	if SwitchPort == nil {
+		fmt.Println("switch port not connected")
+		w.Write([]byte(fmt.Errorf("switch port not connected").Error()))
+		return
+	}
 
 
-// func (h *Handler) DelVM(w http.ResponseWriter, r *http.Request) {
-// 	body, err:= io.ReadAll(r.Body)
-// 	if err!=nil{
-// 		fmt.Println("del switch error")
-// 		w.Write([]byte(err.Error()))
-// 		return
-// 	}
-// 	defer r.Body.Close()
-// 	request:= &DelInstanceRequest{}
-// 	err= json.Unmarshal(body, request)
-// 	if err!=nil{
-// 		fmt.Println("del switch error")
-// 		w.Write([]byte(err.Error()))
-// 		return
-// 	}
+	err= h.Operator.DelSwitchPort(request.IP)
+	if err!=nil{
+		fmt.Println("del switch port error")
+		w.Write([]byte(err.Error()))
+		return
+	}
 
 
-// 	err = h.Operator.DelSwitchPort(request.IP)
-// 	if err!=nil{
-// 		fmt.Println("del switch port error")
-// 		w.Write([]byte(err.Error()))
-// 		return
-// 	}
-	
+	result := &DelInstanceResult{Detail: fmt.Errorf("delete switch port operation")}
 
-// 	result := &DelInstanceResult{
-// 		Detail: fmt.Errorf("delete vm success"),
-// 	}
-// 	data,err:= json.Marshal(result)
-// 	if err!=nil{
-// 		fmt.Printf("%v",fmt.Errorf("http sending error, cleanning"))
-// 		w.Write([]byte(fmt.Errorf("http sending error, cleanning").Error()))
-// 		return
-// 	}
-// 	w.Header().Set("Content-Type", "application/json")
-// 	w.WriteHeader(http.StatusOK)
-// 	w.Write(data)
-// 	fmt.Println("delete vm success")
-// }
+	delete(h.Operator.ExternRouters[string(operation.ROUTER)].SubNetworks, request.IP) 
+	//여러 라우터가 생성될 필요가 있을때 수정,,
+	// 1라우터 - 1서브넷(스위치) 구조이므로 굳이 복잡한 순회를 하지 않아도 됨
+	// 서브넷이 삭제되면 연결된 스위치도 삭제
+	// 서브넷이 삭제되면 연결된 라우터 포트도 삭제
+	// 서브넷이 삭제되면 연결된 NAT도 삭제
+	nets:= externalmodel.GetAllVIF(h.Operator.ExternRouters, NetSignifier)
+	if len(nets) == 0 {
+		fmt.Println("Deleting Connected Switch")
+		err= h.Operator.DelSwitch(SwitchPort.UUID)
+		if err!=nil{
+			fmt.Println("del switch error")
+			w.Write([]byte(err.Error()))
+			return
+		}
+		
+		err= h.Operator.DelRouterPort(NetSignifier+"1")
+		if err!=nil{
+			fmt.Println("del router port error %w", err)
+			w.Write([]byte(fmt.Errorf("del router port error %w", err).Error()))
+			return
+		}
+		result.Detail = fmt.Errorf("delete switch and router port success")
+		delete(h.Operator.ExternRouters[string(operation.ROUTER)].SubNetworks, NetSignifier+"1")
+	}
+
+		// nat 삭제 도입 할 예정
+	result.Detail = fmt.Errorf("%v switch port deleted", result.Detail)
+	data,err:= json.Marshal(result)
+	if err!=nil{
+		fmt.Printf("%v",fmt.Errorf("http sending error, cleanning"))
+		w.Write([]byte(fmt.Errorf("http sending error, cleanning").Error()))
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+	fmt.Println("delete vm success")
+
+}
+
+

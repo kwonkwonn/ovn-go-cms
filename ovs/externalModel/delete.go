@@ -1,6 +1,8 @@
 package externalmodel
 
 import (
+	"fmt"
+
 	NBModel "github.com/kwonkwonn/ovn-go-cms/ovs/internalModel"
 	"github.com/ovn-kubernetes/libovsdb/client"
 	"github.com/ovn-kubernetes/libovsdb/model"
@@ -22,53 +24,75 @@ type RequestControl struct {
 
 func (RP *RouterPort) Delete(request RequestControl) ([]ovsdb.Operation, error) {
 	Router := request.EXRList.GetRouter(request.TargetUUID).InternalRouter
+
 	Router = &NBModel.LogicalRouter{
 		UUID: Router.UUID,
 	}
+	ops := []ovsdb.Operation{}
 
-	transactions, err := request.Client.Where(Router).Mutate(Router, model.Mutation{
+
+	lrp := NBModel.LogicalRouterPort(*RP)
+	transactions, err := request.Client.Where(&lrp).Delete()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create delete operation for router port: %w", err)
+	}
+	ops = append(ops, transactions...)
+
+	transactions, err = request.Client.Where(Router).Mutate(Router, model.Mutation{
 		Field: &Router.Ports,
 		Mutator: ovsdb.MutateOperationDelete,
 		Value: []string{RP.UUID},
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create mutate operation for router ports: %w", err)
 	}
-	return transactions, nil
+	ops = append(ops, transactions...)
+
+
+
+	return ops, nil
 	
 }
 
-// func (SP *SwitchPort) Delete(request RequestControl) ([]ovsdb.Operation, error) {
-// 	targetSwitch := request.EXSList.GetSwitch(request.TargetUUID)
-// 	if targetSwitch == nil {
-// 		return nil, nil // No switch to delete from
-// 	}
+func (SP *SwitchPort) Delete(request RequestControl) ([]ovsdb.Operation, error) {
+	targetSwitch := request.EXSList.GetSwitch(request.TargetUUID)
+	if targetSwitch == nil {
+		return nil, nil // No switch to delete from
+	}
+	ops := []ovsdb.Operation{}
 
-// 	targetSwitch.InternalSwitch.Ports = util.RemoveString(targetSwitch.InternalSwitch.Ports, SP.UUID)
-// 	lsMute, err := request.Client.Where(targetSwitch.InternalSwitch).Mutate(targetSwitch.InternalSwitch, model.Mutation{
-// 		Field: &targetSwitch.InternalSwitch.Ports,
-// 		Mutator: ovsdb.MutateOperationDelete,
-// 		Value: targetSwitch.InternalSwitch.Ports,
-// 	})
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return lsMute, nil
-// }
+	lsp:= NBModel.LogicalSwitchPort(*SP)
+	transaction, err := request.Client.Where(&lsp).Delete()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create delete operation for switch port: %w", err)
+	}
+	ops = append(ops, transaction...)
+
+	transaction, err = request.Client.Where(targetSwitch.InternalSwitch).Mutate(targetSwitch.InternalSwitch, model.Mutation{
+		Field: &targetSwitch.InternalSwitch.Ports,
+		Mutator: ovsdb.MutateOperationDelete,
+		Value: []string{SP.UUID},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create mutate operation for switch ports: %w", err)
+	}
+	ops = append(ops, transaction...)
+	return ops, nil
+}
 
 
-// func (p RtoSwitchPort) GetDeletor(intType portType) Deleter {
-// 	if intType == ROUTER {
-// 		return p.RouterPort
-// 	} else if intType == SWITCH {
-// 		return p.SwitchPort
-// 	}
-// 	return nil
-// }
+func (p RtoSwitchPort) GetDeletor(intType portType) Deleter {
+	if intType == ROUTER {
+		return p.RouterPort
+	} else if intType == SWITCH {
+		return p.SwitchPort
+	}
+	return nil
+}
 
-// func (p StoVMPort) GetDeletor(intType portType) Deleter {
-// 	if intType == "switch" {
-// 		return p.SwitchPort
-// 	}
-// 	return nil
-// }
+func (p StoVMPort) GetDeletor(intType portType) Deleter {
+	if intType == SWITCH {
+		return p.SwitchPort
+	}
+	return nil
+}

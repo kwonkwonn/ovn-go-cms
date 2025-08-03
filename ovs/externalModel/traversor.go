@@ -4,8 +4,25 @@ import "strconv"
 
 
 
+func GetAllVIF(routers EXRList, ipInt string) []NetInt {
+	vifs:= make([]NetInt, 0)
+	
+	for _, router := range routers {
+		for i:=11; i<255; i++{
+			IP := ipInt + strconv.Itoa(i)
+			if netint, ok := router.SubNetworks[IP]; ok {
+				if _, ok := netint.(*StoVMPort); ok {
+					vifs = append(vifs, netint)
+				}
+			}
+		}
 
-func GetNetInt(routers EXRList, ip string)[]NetInt {
+	}
+	return vifs
+}
+
+
+func GetNetInt(routers EXRList, ip string)([]NetInt) {
 	netInst:= make([]NetInt, 0)
 	for _, router := range routers {
 		if netint , ok := router.SubNetworks[ip]; ok {
