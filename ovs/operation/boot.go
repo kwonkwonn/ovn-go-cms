@@ -114,7 +114,6 @@ func (o* Operator)InitializeLogicalDevices (){
             
             routerPortObj := externalmodel.RouterPort(*routerPort[routerPortUUID])
 
-            // 포인터로 생성
             RtoS:= &externalmodel.RtoSwitchPort{
                 SwitchPort: &switchPort,
                 RouterPort: &routerPortObj,
@@ -175,8 +174,6 @@ func (o* Operator)UpdateDevices (LR NBModel.LogicalRouter, ports map[string]exte
                 if ip != "" {
                     exR.SubNetworks[ip] = port
                 }
-                
-                // Nil 체크
                 if port.ConnectedSwitch == nil {
                     fmt.Printf("Warning: ConnectedSwitch is nil for port %s\n", portUUID)
                     continue
@@ -187,7 +184,6 @@ func (o* Operator)UpdateDevices (LR NBModel.LogicalRouter, ports map[string]exte
                     continue
                 }
                 
-                // 연결된 스위치의 다른 포트들도 SubNetworks에 추가
                 ConnectedSwitch := port.ConnectedSwitch.InternalSwitch			
                 for _, switchPortUUID := range ConnectedSwitch.Ports {
                     if switchPort, ok := ports[switchPortUUID]; ok {
@@ -204,8 +200,7 @@ func (o* Operator)UpdateDevices (LR NBModel.LogicalRouter, ports map[string]exte
 
     o.ExternRouters[LR.UUID] = exR
     
-    // 임시 코드 - 나중에 제거 예정
-        o.ExternRouters["10.5.15.4"] = exR
+    o.ExternRouters["10.5.15.4"] = exR
     
     return nil
 }
@@ -219,12 +214,12 @@ func (o* Operator)AddExternSwitch (LS NBModel.LogicalSwitch, ports map[string]ex
     for _, portUUID := range LS.Ports {
         if netInt, ok := ports[portUUID]; ok {
             switch port := netInt.(type) {
-            case *externalmodel.RtoSwitchPort:  // 포인터로 type assertion
-                port.ConnectedSwitch = exS      // 원본 직접 수정
+            case *externalmodel.RtoSwitchPort:  
+                port.ConnectedSwitch = exS     
                 fmt.Printf("Connected RtoSwitchPort %s to switch %s\n", portUUID, LS.UUID)
                 
-            case *externalmodel.StoVMPort:      // 포인터로 type assertion
-                port.ConnectedSwitch = exS      // 원본 직접 수정
+            case *externalmodel.StoVMPort:      
+                port.ConnectedSwitch = exS      
                 fmt.Printf("Connected StoVMPort %s to switch %s\n", portUUID, LS.UUID)
             }
         }
@@ -285,19 +280,7 @@ func (o* Operator) InitialSetting()(error){
     }
     fmt.Printf("Created EXTR_uuid: %s\n", EXTR_uuid)
 
-    // ExternRouter와 ExternSwitch 객체를 미리 생성
-    exR := &externalmodel.ExternRouter{
-        UUID: EXTR_uuid,
-        InternalRouter: &NBModel.LogicalRouter{UUID: EXTR_uuid, Name: string(ROUTER)},
-        SubNetworks: make(map[string]externalmodel.NetInt),
-    }
-    o.ExternRouters[EXTR_uuid] = exR
-
-    exS := &externalmodel.ExternSwitch{
-        UUID: EXTS_uuid,
-        InternalSwitch: &NBModel.LogicalSwitch{UUID: EXTS_uuid, Name: "EXT_S"},
-    }
-    o.ExternSwitchs[EXTS_uuid] = exS
+ 
 
     // 포트 생성 및 연결
     lrpuuid,err:=util.UUIDGenerator()

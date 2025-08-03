@@ -54,15 +54,6 @@ func (o* Operator) SwitchesPortConnect(uuids []string,IP string ,VMUUID string, 
 }
 
 
-
-
-
-
-
-
-
-
-
 func (o* Operator) findDevByUUID(uuid string) (any, error){
 	dev,ok := o.ExternRouters[uuid]
 	if !ok{

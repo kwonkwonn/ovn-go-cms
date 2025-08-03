@@ -104,8 +104,8 @@ func (o *Operator) AddRouter(IP string) (string, error) {
 		return "",fmt.Errorf("creaing operations for Router failed %v",err)
 	}
 	fmt.Println(result)
-	
-	o.ExternRouters[IP]=&router
+
+	o.ExternRouters[IP] = &router
 
 	return RtUUID.String(),nil
 

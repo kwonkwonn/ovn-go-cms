@@ -89,11 +89,11 @@ type Config struct {
 // 연결 단위 interface(NetInt)로 ip를 관리함
 
 func (RP RtoSwitchPort) RetriveAddress() string {
-	parsedIP, err := util.GetNetworkAddress(RP.RouterPort.Networks[0])
+	parsedIP, err := util.GetNetWorkInterface(RP.RouterPort.Networks[0])
 	if err != nil {
 		return ""
 	}
-	return parsedIP
+	return parsedIP+"1"
 }
 
 func (SP StoVMPort) RetriveAddress() string {
