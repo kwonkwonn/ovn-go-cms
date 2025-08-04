@@ -95,32 +95,36 @@ func (o *Operator) AddRouterPort(lruuid string ,lrpuuid string,natuuid string, i
 
         operations=append(operations, ops...)
 
-    netmask, err := util.GetNetWorkSignifier(ip)
-    if err != nil {
-        fmt.Printf("AddInterconnectR_S ERROR: error getting network address: %v\n", err)
-        return nil, err
-    }
+    fmt.Println("IPADDRESS RECEIVED:", ip  )
+    if (ip) != string(ROUTER) {
 
-    fmt.Println("AddInterconnectR_S: netmask:", netmask)
+        netmask, err := util.GetNetWorkSignifier(ip)
+        if err != nil {
+            fmt.Printf("AddInterconnectR_S ERROR: error getting network address: %v\n", err)
+            return nil, err
+        }
 
-    newNat:= &NBModel.NAT{
-        UUID: natuuid,
-        Type: NBModel.NATTypeSNAT,
-        ExternalIP: string(ROUTER),
-        LogicalIP: netmask+"0/24",
-    }
-    operation,err := o.Client.Create(newNat)
-    if err != nil {
-        fmt.Printf("AddInterconnectR_S ERROR: creating NAT error %v\n", err)
-        return nil, err
-    }
-    operations = append(operations, operation...)
+        fmt.Println("AddInterconnectR_S: netmask:", netmask)
 
-    ops,err = o.AddNAT(lruuid, natuuid)
-    if err != nil {
-        fmt.Printf("AddInterconnectR_S ERROR: adding NAT to router error %v\n", err)
-        return nil, err
-    }
+        newNat:= &NBModel.NAT{
+            UUID: natuuid,
+            Type: NBModel.NATTypeSNAT,
+            ExternalIP: string(ROUTER),
+            LogicalIP: netmask+"0/24",
+        }
+        operation,err := o.Client.Create(newNat)
+        if err != nil {
+            fmt.Printf("AddInterconnectR_S ERROR: creating NAT error %v\n", err)
+            return nil, err
+        }
+        operations = append(operations, operation...)
+
+            ops,err = o.AddNAT(lruuid, natuuid)
+            if err != nil {
+                fmt.Printf("AddInterconnectR_S ERROR: adding NAT to router error %v\n", err)
+                return nil, err
+            }
+    } 
     operations = append(operations, ops...)
 
 

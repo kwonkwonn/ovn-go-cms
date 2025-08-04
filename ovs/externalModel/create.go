@@ -26,7 +26,9 @@ func (SP *SwitchPort) Create(client client.Client, uuid string,  portType string
 	SP.Name = uuid
 	SP.Addresses = []string{Address}
 
-	if portType != "" {
+	if portType == "" || portType == "vif" {
+		SP.Type = ""
+	}else{
 		SP.Type = portType // "vif" or "router"
 	}
 	
