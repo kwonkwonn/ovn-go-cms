@@ -75,6 +75,7 @@ func (h *Handler) CreateNewVm(w  http.ResponseWriter,r *http.Request ){
 
 	
 	err = h.Operator.SwitchesPortConnect([]string{swUUID}, newvifIP, InstUUID.String(), mac)
+
 	if err != nil {
 		fmt.Println(err)
 	}

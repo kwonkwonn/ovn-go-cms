@@ -33,7 +33,12 @@ func GetNetInt(routers EXRList, ip string)([]NetInt) {
 	return netInst
 }
 
-
+func AddNetIntToRouter(router *ExternRouter, ip string, netint NetInt) {
+    if router.SubNetworks == nil {
+        router.SubNetworks = make(map[string]NetInt)
+    }
+    router.SubNetworks[ip] = netint
+}
 func AddNetInt(routers EXRList, ip string, netint NetInt) {
 	for _, router := range routers {
 		if _, ok := router.SubNetworks[ip]; !ok {

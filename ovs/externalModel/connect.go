@@ -46,7 +46,7 @@ func (sp SwitchPort) Connect (request RequestControl) ([]ovsdb.Operation, error)
 	lsMute, err := request.Client.Where(targetSwitch.InternalSwitch).Mutate(targetSwitch.InternalSwitch, model.Mutation{
 		Field: &targetSwitch.InternalSwitch.Ports,
 		Mutator: ovsdb.MutateOperationInsert,
-		Value: targetSwitch.InternalSwitch.Ports,
+		Value: []string{sp.UUID},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to mutate switch ports: %w", err)

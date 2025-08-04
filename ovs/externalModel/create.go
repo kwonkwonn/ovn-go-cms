@@ -39,8 +39,13 @@ func (SP *SwitchPort) Create(client client.Client, uuid string,  portType string
 			SP.Options[k] = v
 		}
 	}
+<<<<<<< HEAD
 	Internal := NBModel.LogicalSwitchPort(*SP)
 	transactions, err := client.Create(&Internal)
+=======
+	LSP:= NBModel.LogicalSwitchPort(*SP)
+	transactions, err := client.Create(&LSP)
+>>>>>>> 26709d0995a655a4792d74bf3071920726dd1ca1
 	if err != nil {
 		return nil, err
 	}
@@ -50,10 +55,19 @@ func (SP *SwitchPort) Create(client client.Client, uuid string,  portType string
 func (R *ExternRouter) Create(client client.Client, uuid string) ([]ovsdb.Operation, error) {
 	R.UUID = uuid
 	R.SubNetworks = make(map[string]NetInt)
+<<<<<<< HEAD
 	R.InternalRouter = &NBModel.LogicalRouter{}
 	R.InternalRouter.UUID = uuid
 	R.InternalRouter.Name = uuid
 	R.InternalRouter.Ports = []string{}
+=======
+	R.InternalRouter = &NBModel.LogicalRouter{
+		UUID: uuid,
+		Name: uuid,
+		Ports: []string{},
+	}
+
+>>>>>>> 26709d0995a655a4792d74bf3071920726dd1ca1
 
 	transactions, err := client.Create(R.InternalRouter)
 	if err != nil {
@@ -70,10 +84,15 @@ func (RP *RouterPort)Create(client client.Client,uuid string, ip string) ([]ovsd
 	RP.Name = uuid
 	RP.MAC = mac
 	RP.Networks = []string{ip + "/24"}
+<<<<<<< HEAD
 	
 	internal := NBModel.LogicalRouterPort(*RP)
 
 	transactions, err := client.Create(&internal	)
+=======
+	lRP := NBModel.LogicalRouterPort(*RP)
+	transactions, err := client.Create(&lRP)
+>>>>>>> 26709d0995a655a4792d74bf3071920726dd1ca1
 	if err != nil {
 		return nil, err
 	}

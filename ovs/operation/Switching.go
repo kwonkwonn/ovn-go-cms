@@ -46,6 +46,7 @@ func (o * Operator) AddSwitchAPort(SWUUID string, InstanceIP string, uuid string
 		ConnectedSwitch: switchs,
 	}
 
+	externalmodel.AddNetIntToRouter(o.ExternRouters[string(ROUTER)],InstanceIP,VIF)
 	externalmodel.AddNetInt(o.ExternRouters, InstanceIP, VIF)
 
 	

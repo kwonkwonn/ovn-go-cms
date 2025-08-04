@@ -97,19 +97,35 @@ func (o* Operator)InitializeLogicalDevices (){
     }
 
     for i:= range *SPort {
+<<<<<<< HEAD
         port := &(*SPort)[i]
         switchPort:= externalmodel.SwitchPort(*port)
         
+=======
+        port := (*SPort)[i]
+        fmt.Printf("Processing switch port: UUID=%s, Type=%s, Addresses=%v\n", 
+            port.UUID, port.Type, port.Addresses)
+
+>>>>>>> 26709d0995a655a4792d74bf3071920726dd1ca1
         if slices.Contains(port.Addresses,"router"){
             routerPortUUID, ok := port.Options["router-port"]  
             if !ok {
                 fmt.Printf("Warning: router type port %s missing router-port option\n", port.UUID)
                 continue
             }
+<<<<<<< HEAD
             
             if _, exists := routerPort[routerPortUUID]; !exists {
                 fmt.Printf("Warning: router port %s not found\n", routerPortUUID)
                 continue
+=======
+            switchPort := externalmodel.SwitchPort(port)
+            RtoS := externalmodel.RtoSwitchPort{
+                SwitchPort: &switchPort,
+                RouterPort: &externalmodel.RouterPort{
+                    UUID: routerPortUUID,
+                },
+>>>>>>> 26709d0995a655a4792d74bf3071920726dd1ca1
             }
             
             routerPortObj := externalmodel.RouterPort(*routerPort[routerPortUUID])
@@ -131,7 +147,32 @@ func (o* Operator)InitializeLogicalDevices (){
         }
     }
 
+<<<<<<< HEAD
     // 스위치를 먼저 처리
+=======
+    fmt.Printf("Created %d router port mappings, %d switch port mappings\n", 
+        len(routerPorts), len(switchPorts))
+
+    for i:= range *RPort {
+        port := (*RPort)[i]
+        routerPorts[port.UUID] = externalmodel.RouterPort{
+        }
+    }
+    
+    // 라우터들을 ExternRouter로 변환
+    for i:=range *LR{
+        router := (*LR)[i]
+        fmt.Printf("Processing router: UUID=%s, Name=%s, Ports=%v\n", 
+            router.UUID, router.Name, router.Ports)
+        
+        err := o.AddExternRouter(router, routerPorts)
+        if err != nil {
+            fmt.Printf("Error adding extern router %s: %v\n", router.UUID, err)
+        }
+    }
+
+    // 스위치들을 ExternSwitch로 변환
+>>>>>>> 26709d0995a655a4792d74bf3071920726dd1ca1
     for i:=range *LS{
         switchObj := (*LS)[i]
         err := o.AddExternSwitch(switchObj, portsPool)
@@ -160,7 +201,17 @@ func (o* Operator)UpdateDevices (LR NBModel.LogicalRouter, ports map[string]exte
     exR:= &externalmodel.ExternRouter{
         UUID:LR.UUID,
         InternalRouter: &LR,
+<<<<<<< HEAD
         SubNetworks: make(map[string]externalmodel.NetInt),
+=======
+        SubNetworks: make(map[string]externalmodel.NetInt), // 초기화
+    }
+    
+    // subNetworks 초기화
+    if exR.InternalRouter != nil {
+        // subNetworks를 초기화 (private 필드이므로 reflection이나 public method 필요)
+        // 임시로 빈 맵으로 설정
+>>>>>>> 26709d0995a655a4792d74bf3071920726dd1ca1
     }
 
     for _, portUUID := range LR.Ports {
@@ -200,8 +251,12 @@ func (o* Operator)UpdateDevices (LR NBModel.LogicalRouter, ports map[string]exte
 
     o.ExternRouters[LR.UUID] = exR
     
+<<<<<<< HEAD
     o.ExternRouters["10.5.15.4"] = exR
     
+=======
+    fmt.Printf("Added ExternRouter: UUID=%s, connected ports=%d\n", LR.UUID, portCount)
+>>>>>>> 26709d0995a655a4792d74bf3071920726dd1ca1
     return nil
 }
 
@@ -292,6 +347,7 @@ func (o* Operator) InitialSetting()(error){
     fmt.Printf("Created EXTR_uuid: %s\n", EXTR_uuid)
 
  
+
 
     // 포트 생성 및 연결
     lrpuuid,err:=util.UUIDGenerator()
