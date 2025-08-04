@@ -18,11 +18,11 @@ func InitServer(portNum int, handler service.Handler) {
 	}
 	defer listener.Close()  
 
-	http.HandleFunc("POST /New/Instance", handler.CreateNewNetVm)
+	// http.HandleFunc("POST /New/Instance", handler.CreateNewNetVm)
 	// 새로운 가상머신을 생성, 새로운 네트워크를 만드는 과정까지 추상화 됨
 	// http.HandleFunc("POST /New/Net",)
 	// 새로운 네트워크를 생성, 새로운 서브넷
-	http.HandleFunc("POST /Add/Instance", handler.CreateNewVm)
+	http.HandleFunc("POST /New/Instance", handler.CreateNewVm)
 	//새로운 가상 머신을 생성, 기존 네트워크에 붙
 	//http.HandleFunc("POST /Add/Net")
 	// 네트워크를 생성, 기존 서브넷에 붙임, 아직 안씀

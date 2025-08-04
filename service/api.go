@@ -14,15 +14,14 @@ import (
 
 
 
+
 func (h *Handler) CreateNewVm(w  http.ResponseWriter,r *http.Request ){
-	fmt.Println("new REQUEST")
 	body, err:= io.ReadAll(r.Body)
 	if err!=nil{
 		fmt.Println("add switch error")
 
 		w.Write([]byte(err.Error()))
 	}
-
 	defer r.Body.Close()
 	request:= &NewInstanceRequeset{}
 	err= json.Unmarshal(body, request)
@@ -31,32 +30,51 @@ func (h *Handler) CreateNewVm(w  http.ResponseWriter,r *http.Request ){
 		w.Write([]byte(err.Error()))
 		return
 	}
-    fmt.Println("zxvavasdvdsas", h.Operator.ExternRouters[string(operation.ROUTER)].SubNetworks)
 
-	newIP := externalmodel.FindRemainIP(h.Operator.ExternRouters, request.RequestSubnet, externalmodel.VIF)
-	fmt.Println(newIP)
+	var RtoSInterfaceIP = request.RequestSubnet + "1"
+	RtoSInterface:= externalmodel.GetNetInt(h.Operator.ExternRouters, RtoSInterfaceIP)
+	
+	
+	var swUUID string 
+	newvifIP := externalmodel.FindRemainIP(h.Operator.ExternRouters, request.RequestSubnet, externalmodel.VIF)
+	
+	mac,err:=util.MacGenerator()
+		if err!=nil{
+			w.Write([]byte(fmt.Errorf("mac generating error, cleaning").Error()))
+			return
+		}
+	InstUUID,err := util.UUIDGenerator()
+		if err!=nil{
+			fmt.Println("no such switch exist")
+	}
 
-	interconnectInt := externalmodel.GetNetInt(h.Operator.ExternRouters, request.RequestSubnet+"1")
 
+	if len(RtoSInterface) == 0 {
+		fmt.Println("request for new subnet, creating new router port")
+		routerUUID := h.Operator.ExternRouters[string(operation.ROUTER)].UUID
+			if routerUUID == "" {
+			panic("router not exist, something went wrong, critical")
+		}
+
+		swUUID,err = h.Operator.AddSwitch()
+			if err!=nil{
+				fmt.Println("add switch error")
+				fmt.Printf("%v",fmt.Errorf("http sending error, cleanning"))
+				return
+		}
+		err=h.Operator.AddInterconnectR_S(swUUID,routerUUID, RtoSInterfaceIP)
+			if err!=nil{
+				fmt.Println(err)
+		}
+
+	}else{
+		swUUID = RtoSInterface[0].(*externalmodel.RtoSwitchPort).ConnectedSwitch.UUID
+	}
 
 	
-	InstUUID, err := util.UUIDGenerator()
-	if err != nil 	{
-		fmt.Println("uuid generating error: switch port uuid")
-	}
 
-
-	mac,err:=util.MacGenerator()
-	if err!=nil{
-		fmt.Printf("%v",fmt.Errorf("http sending error, cleanning"))
-		w.Write([]byte(fmt.Errorf("mac generating error, cleaning").Error()))
-		//클린업 함수 만들어야 함 
-		return
-	}
-	fmt.Println(mac)
-
-	switchs := interconnectInt[0].(*externalmodel.RtoSwitchPort).ConnectedSwitch
-	err = h.Operator.SwitchesPortConnect([]string{switchs.UUID}, newIP, InstUUID.String(), mac)
+	
+	err = h.Operator.SwitchesPortConnect([]string{swUUID}, newvifIP, InstUUID.String(), mac)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -66,7 +84,7 @@ func (h *Handler) CreateNewVm(w  http.ResponseWriter,r *http.Request ){
 
 	result:= &NewInstanceResult{
 		MacAddress: mac,
-		IP: newIP,
+		IP: newvifIP,
 		IfaceID: InstUUID.String(),
 	}
 
@@ -83,86 +101,88 @@ func (h *Handler) CreateNewVm(w  http.ResponseWriter,r *http.Request ){
 }
 
 
-func (h *Handler) CreateNewNetVm(w http.ResponseWriter,r *http.Request ){
-	body, err:= io.ReadAll(r.Body)
-	if err!=nil{
-		fmt.Println("add switch error")
 
-		w.Write([]byte(err.Error()))
-		return 
-	}
+// func (h *Handler) CreateNewNetVm(w http.ResponseWriter,r *http.Request ){
+// 	body, err:= io.ReadAll(r.Body)
+// 	if err!=nil{
+// 		fmt.Println("add switch error")
 
-	defer r.Body.Close()
-	request:= &NewInstanceRequeset{}
-	err= json.Unmarshal(body, request)
-	if err!=nil{
-		fmt.Println("add switch error")
-		w.Write([]byte(err.Error()))
-		return
+// 		w.Write([]byte(err.Error()))
+// 		return 
+// 	}
 
-	}
+// 	defer r.Body.Close()
+// 	request:= &NewInstanceRequeset{}
+// 	err= json.Unmarshal(body, request)
+// 	if err!=nil{
+// 		fmt.Println("add switch error")
+// 		w.Write([]byte(err.Error()))
+// 		return
 
-
-	routerUUID := h.Operator.ExternRouters[string(operation.ROUTER)].UUID
-	if routerUUID == "" {
-		panic("router not exist, something went wrong, critical")
-	}
+// 	}
 
 
-
-	VifIP := externalmodel.FindRemainIP(h.Operator.ExternRouters, request.RequestSubnet, externalmodel.VIF)
-	fmt.Println("ip found" + VifIP)
-	SwitchPortIP :=externalmodel.FindRemainIP(h.Operator.ExternRouters, request.RequestSubnet, externalmodel.SWITCH)
-	fmt.Println("ip found" + SwitchPortIP)
-
- 	swUUID,err := h.Operator.AddSwitch()
-	if err!=nil{
-		fmt.Println("add switch error")
-		fmt.Printf("%v",fmt.Errorf("http sending error, cleanning"))
-		return
-	}
-
-	mac,err:=util.MacGenerator()
-	if err!=nil{
-		w.Write([]byte(fmt.Errorf("mac generating error, cleaning").Error()))
-		return
-	}
-	InstUUID,err := util.UUIDGenerator()
-	if err!=nil{
-		fmt.Println("no such switch exist")
-	}
-
-	err=h.Operator.AddInterconnectR_S(swUUID,routerUUID,SwitchPortIP)
-	if err!=nil{
-		fmt.Println(err)
-	}
-
-    fmt.Println("zxvavasdvdsas", h.Operator.ExternRouters[string(operation.ROUTER)].SubNetworks)
-
-	_, err = h.Operator.AddSwitchAPort(swUUID, VifIP, InstUUID.String(), mac)
-	if err != nil {
-		fmt.Println("add switch error")
-		fmt.Printf("%v", fmt.Errorf("http sending error, cleanning"))
-		return
-	}
+// 	routerUUID := h.Operator.ExternRouters[string(operation.ROUTER)].UUID
+// 	if routerUUID == "" {
+// 		panic("router not exist, something went wrong, critical")
+// 	}
 
 
 
-	result := &NewInstanceResult{
-		MacAddress: mac,
-		IP: VifIP,
-		IfaceID: InstUUID.String(),
-	}
-	data,err:= json.Marshal(result)
-	if err!=nil{
-		fmt.Printf("%v",fmt.Errorf("http sending error, cleanning"))
-		w.Write([]byte(fmt.Errorf("http sending error, cleanning").Error()))
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+// 	VifIP := externalmodel.FindRemainIP(h.Operator.ExternRouters, request.RequestSubnet, externalmodel.VIF)
+// 	fmt.Println("ip found" + VifIP)
+// 	SwitchPortIP :=externalmodel.FindRemainIP(h.Operator.ExternRouters, request.RequestSubnet, externalmodel.SWITCH)
+// 	fmt.Println("ip found" + SwitchPortIP)
+
+//  	swUUID,err := h.Operator.AddSwitch()
+// 	if err!=nil{
+// 		fmt.Println("add switch error")
+// 		fmt.Printf("%v",fmt.Errorf("http sending error, cleanning"))
+// 		return
+// 	}
+
+// 	mac,err:=util.MacGenerator()
+// 	if err!=nil{
+// 		w.Write([]byte(fmt.Errorf("mac generating error, cleaning").Error()))
+// 		return
+// 	}
+// 	InstUUID,err := util.UUIDGenerator()
+// 	if err!=nil{
+// 		fmt.Println("no such switch exist")
+// 	}
+
+// 	err=h.Operator.AddInterconnectR_S(swUUID,routerUUID,SwitchPortIP)
+// 	if err!=nil{
+// 		fmt.Println(err)
+// 	}
+
+//     fmt.Println("zxvavasdvdsas", h.Operator.ExternRouters[string(operation.ROUTER)].SubNetworks)
+
+// 	_, err = h.Operator.AddSwitchAPort(swUUID, VifIP, InstUUID.String(), mac)
+// 	if err != nil {
+// 		fmt.Println("add switch error")
+// 		fmt.Printf("%v", fmt.Errorf("http sending error, cleanning"))
+// 		return
+// 	}
+
+
+
+// 	result := &NewInstanceResult{
+// 		MacAddress: mac,
+// 		IP: VifIP,
+// 		IfaceID: InstUUID.String(),
+// 	}
+// 	data,err:= json.Marshal(result)
+// 	if err!=nil{
+// 		fmt.Printf("%v",fmt.Errorf("http sending error, cleanning"))
+// 		w.Write([]byte(fmt.Errorf("http sending error, cleanning").Error()))
+// 	}
+// 	w.Header().Set("Content-Type", "application/json")
+// 	w.WriteHeader(http.StatusOK)
+// 	w.Write(data)
 	
-}	
+// }	
+//테스트 완전 될때까지만 살려둠...
 
 func (h *Handler) DeleteAll (w http.ResponseWriter, r* http.Request){
 
