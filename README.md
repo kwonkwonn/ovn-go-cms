@@ -61,20 +61,18 @@ v                    |
 - **OVS/OVN Integration**  
   - Handles port creation (`ovs-vsctl add-port`).  
   - Allocates VXLAN tunnels for network isolation.  
-- **gRPC API**  
   - Exposes VM lifecycle hooks (create, delete).  
   - Communicates with compute nodes for sync.  
 
 ### 2. Network Layer
-- **Namespaces** for isolation.  
-- **VXLAN** for tenant-level segmentation.  
-- **iptables** for NAT/Firewall rules.  
+- **Geneve** for tenant-level segmentation.  
+
 
 ### 3. VM Management
 - VM network interfaces dynamically attach to OVS bridges.  
 - Each VM can be assigned to:  
   - **Default subnet** (shared)  
-  - **Dedicated VXLAN subnet** (isolated)  
+  - **Dedicated isolated ip subnet** 
 
 ---
 
