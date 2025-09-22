@@ -21,6 +21,7 @@ This project focuses on simplicity and efficiency, without relying on heavyweigh
 ---
 
 ## 🏗️ Architecture Overview
+```
 
 +-------------------+  
 | Client (VM API)   |  
@@ -42,7 +43,7 @@ v                    |
 | Compute Nodes      |  
 | (VM Instances)     |  
 +-------------------+
-
+```
 
 
 - **Client**: Sends VM creation/deletion requests.  
