@@ -22,25 +22,25 @@ This project focuses on simplicity and efficiency, without relying on heavyweigh
 
 ## 🏗️ Architecture Overview
 
-+-------------------+
-| Client (VM API)   |
-+-------------------+
-|                   |
-| api               |
-v                   |
-+-------------------+ +--------------------+
-| Control Server |------| External Network |
-| (Automation) | GW | (Internet / LAN)     |
-| | +--------------------------------------+
-| - api gateway                            |
-| - OVS/OVN controller, northd Mgmt        |
-+---------+---------------------------------+
-|    control node    |
-| OVS Port / VXLAN   |
-v                    |
-+--------------------+
-| Compute Nodes      |
-| (VM Instances)     |
++-------------------+  
+| Client (VM API)   |  
++-------------------+  
+|                   |  
+| api               |  
+v                   |  
++-------------------+ +--------------------+  
+| Control Server |------| External Network |  
+| (Automation) | GW | (Internet / LAN)     |  
+| | +--------------------------------------+  
+| - api gateway                            |  
+| - OVS/OVN controller, northd Mgmt        |  
++---------+---------------------------------+  
+|    control node    |  
+| OVS Port / VXLAN   |  
+v                    |  
++--------------------+  
+| Compute Nodes      |  
+| (VM Instances)     |  
 +-------------------+
 
 
