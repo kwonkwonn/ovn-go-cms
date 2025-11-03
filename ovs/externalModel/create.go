@@ -21,21 +21,20 @@ func (ES *ExternSwitch) Create(client client.Client, uuid string) ([]ovsdb.Opera
 	return transactions, nil
 }
 
-func (SP *SwitchPort) Create(client client.Client, uuid string,  portType string, Address string, Options map[string]string) ([]ovsdb.Operation, error) {
+func (SP *SwitchPort) Create(client client.Client, uuid string, portType string, Address string, Options map[string]string) ([]ovsdb.Operation, error) {
 	SP.UUID = uuid
 	SP.Name = uuid
 	SP.Addresses = []string{Address}
 
 	if portType == "" || portType == "vif" {
 		SP.Type = ""
-	}else{
+	} else {
 		SP.Type = portType // "vif" or "router"
 	}
-	
 
 	if Options != nil {
 		SP.Options = make(map[string]string)
-		for k,v := range Options {
+		for k, v := range Options {
 			SP.Options[k] = v
 		}
 	}
@@ -62,22 +61,20 @@ func (R *ExternRouter) Create(client client.Client, uuid string) ([]ovsdb.Operat
 	return transactions, nil
 }
 
-
-func (RP *RouterPort)Create(client client.Client,uuid string, ip string) ([]ovsdb.Operation, error) {
-    mac,_:= util.MacGenerator()
+func (RP *RouterPort) Create(client client.Client, uuid string, ip string) ([]ovsdb.Operation, error) {
+	mac, _ := util.MacGenerator()
 
 	RP.UUID = uuid
 	RP.Name = uuid
 	RP.MAC = mac
 	RP.Networks = []string{ip + "/24"}
-	
+
 	internal := NBModel.LogicalRouterPort(*RP)
 
-	transactions, err := client.Create(&internal	)
+	transactions, err := client.Create(&internal)
 	if err != nil {
 		return nil, err
 	}
 	return transactions, nil
 
 }
-	

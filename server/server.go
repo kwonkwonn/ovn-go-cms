@@ -12,11 +12,11 @@ import (
 func InitServer(portNum int, handler service.Handler) {
 	addr := "0.0.0.0:" + strconv.Itoa(portNum)
 
-	listener, err := net.Listen("tcp4", addr)  
+	listener, err := net.Listen("tcp4", addr)
 	if err != nil {
 		log.Fatalf("Failed to listen on %s: %v", addr, err)
 	}
-	defer listener.Close()  
+	defer listener.Close()
 
 	// http.HandleFunc("POST /New/Instance", handler.CreateNewNetVm)
 	// 새로운 가상머신을 생성, 새로운 네트워크를 만드는 과정까지 추상화 됨
@@ -34,7 +34,7 @@ func InitServer(portNum int, handler service.Handler) {
 	http.HandleFunc("DELETE /ALL", handler.DeleteAll)
 	// //**테스트용으로만 사용, 모든 가상 디바이스 삭제**
 
-	err = http.Serve(listener, nil) 
+	err = http.Serve(listener, nil)
 	if err != nil {
 		log.Fatalf("HTTP server failed: %v", err)
 	}

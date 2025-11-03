@@ -11,32 +11,25 @@ import (
 	model "github.com/ovn-kubernetes/libovsdb/model"
 )
 
- 
-
-
 func InitializeNBDBModel() (*model.ClientDBModel, error) {
 	dbModelReq, _ := NBModel.FullDatabaseModel()
-	return &dbModelReq,nil
+	return &dbModelReq, nil
 }
 
-
-func InitializeOvnClient( IPAddressNB string ) (client.Client, error) {
+func InitializeOvnClient(IPAddressNB string) (client.Client, error) {
 	dbModel, err := InitializeNBDBModel()
 	if err != nil {
 		return nil, err
 	}
-	//put valid address and address for northdb 
-	
+	//put valid address and address for northdb
+
 	ovnClient, err := client.NewOVSDBClient(*dbModel, client.WithEndpoint("tcp:"+IPAddressNB+":6641"))
 	if err != nil {
 		panic(errors.New("initial connection failed booting ovn-cms, check if ovn-northdb is on"))
 	}
-
-	
 
 	ovnClient.Connect(context.Background())
 	ovnClient.MonitorAll(context.Background())
 
 	return ovnClient, nil
 }
-
