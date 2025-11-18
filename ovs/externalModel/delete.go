@@ -15,15 +15,14 @@ import (
 
 
 type RequestControl struct {
-	EXRList  EXRList
-	EXSList  EXSList
+	listCon Context
 	TargetUUID string
 	Client     client.Client
 }
 
 
 func (RP *RouterPort) Delete(request RequestControl) ([]ovsdb.Operation, error) {
-	Router := request.EXRList.GetRouter(request.TargetUUID).InternalRouter
+	Router := request.listCon.GetRouter(request.TargetUUID).InternalRouter
 
 	Router = &NBModel.LogicalRouter{
 		UUID: Router.UUID,
@@ -55,7 +54,7 @@ func (RP *RouterPort) Delete(request RequestControl) ([]ovsdb.Operation, error) 
 }
 
 func (SP *SwitchPort) Delete(request RequestControl) ([]ovsdb.Operation, error) {
-	targetSwitch := request.EXSList.GetSwitch(request.TargetUUID)
+	targetSwitch := request.listCon.GetSwitch(request.TargetUUID)
 	if targetSwitch == nil {
 		return nil, nil // No switch to delete from
 	}

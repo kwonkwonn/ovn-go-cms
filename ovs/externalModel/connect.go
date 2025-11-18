@@ -13,7 +13,7 @@ import (
 
 
 func (LP *RouterPort) Connect(request RequestControl) ([]ovsdb.Operation, error) {
-	Router:= request.EXRList.GetRouter(request.TargetUUID).InternalRouter
+	Router:= request.listCon.GetRouter(request.TargetUUID).InternalRouter
 	if Router == nil {
 		return nil, fmt.Errorf("no such router found") // No router to connect to
 	}
@@ -37,7 +37,7 @@ func (LP *RouterPort) Connect(request RequestControl) ([]ovsdb.Operation, error)
  
 
 func (sp SwitchPort) Connect (request RequestControl) ([]ovsdb.Operation, error)  {
-	targetSwitch := request.EXSList.GetSwitch(request.TargetUUID)
+	targetSwitch := request.listCon.GetSwitch(request.TargetUUID)
 	if targetSwitch == nil {
 		return nil, fmt.Errorf("no such switch exist")
 	}

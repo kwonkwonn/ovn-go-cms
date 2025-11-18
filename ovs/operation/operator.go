@@ -29,8 +29,7 @@ const (
 
 type Operator struct{
 	Client client.Client
-	ExternRouters externalmodel.EXRList
-	ExternSwitchs externalmodel.EXSList
+	ListCon *externalmodel.Context
 	// IPMapping map[string]string// device uuid
 }
 

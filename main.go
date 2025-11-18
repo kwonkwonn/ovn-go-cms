@@ -20,26 +20,25 @@ func main(){
 	if err != nil {
 		log.Fatalf("Failed to initialize OVN client: %v", err)
 	}
-
-	Operator := &operation.Operator{
+	listCon := externalmodel.NewContext()
+	operator := &operation.Operator{
 		Client: ovnClient,
+		ListCon: listCon,
 	}
-	Operator.ExternRouters = make(map[string]*externalmodel.ExternRouter, 0)
-	Operator.ExternSwitchs = make(map[string]*externalmodel.ExternSwitch,0)
 
-	Operator.InitializeLogicalDevices()
-	if len(Operator.ExternRouters) == 0 && len(Operator.ExternSwitchs) == 0 {
-		err:= Operator.InitialSetting()
+
+	operator.InitializeLogicalDevices()
+	if operator.ListCon.IsInitialized() == false {
+		err:= operator.InitialSetting()
 		if err != nil {
 			panic("initialize error: " + err.Error())
 		}
 	}
 
-	fmt.Println("ExternRouters: ", Operator.ExternRouters)
-	fmt.Println("ExternSwitchs: ", Operator.ExternSwitchs)
+	fmt.Println("ExternRouters: ", operator.ListCon.EXPList)
+	fmt.Println("ExternSwitchs: ", operator.ListCon.EXSList)
 	handler:=service.Handler{
-		Operator: Operator,
-
+		Operator: operator,
 	}
 
 
