@@ -44,7 +44,8 @@ func (h *Handler) CreateNewVm(w http.ResponseWriter, r *http.Request) {
 	}
 	InstUUID, err := util.UUIDGenerator()
 	if err != nil {
-		fmt.Println("no such switch exist")
+		http.Error(w, "uuid generating error", http.StatusInternalServerError)
+		return
 	}
 
 	if len(RtoSInterface) == 0 {
@@ -63,7 +64,8 @@ func (h *Handler) CreateNewVm(w http.ResponseWriter, r *http.Request) {
 		}
 		err = h.Operator.AddInterconnectR_S(swUUID, routerUUID, RtoSInterfaceIP)
 		if err != nil {
-			fmt.Println(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 	} else {
@@ -71,9 +73,9 @@ func (h *Handler) CreateNewVm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.Operator.SwitchesPortConnect([]string{swUUID}, newvifIP, InstUUID.String(), mac)
-
 	if err != nil {
-		fmt.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	result := &NewInstanceResult{
@@ -84,13 +86,12 @@ func (h *Handler) CreateNewVm(w http.ResponseWriter, r *http.Request) {
 
 	data, err := json.Marshal(result)
 	if err != nil {
-		fmt.Printf("%v", fmt.Errorf("http sending error, cleanning"))
-		w.Write([]byte(fmt.Errorf("http sending error, cleanning").Error()))
+		http.Error(w, "json marshal error", http.StatusInternalServerError)
+		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
-
 }
 
 func (h *Handler) DeleteAll(w http.ResponseWriter, r *http.Request) {

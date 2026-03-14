@@ -33,7 +33,7 @@ func (o *Operator) AddSwitchAPort(SWUUID string, InstanceIP string, uuid string,
 
 	result, err := o.Client.Transact(context.Background(), ops...)
 	if err != nil {
-		fmt.Println("the problem is...", err)
+		return nil, fmt.Errorf("transact error: %w", err)
 	}
 	fmt.Println(result)
 
@@ -76,7 +76,7 @@ func (o *Operator) AddSwitchAPort_Router(SWUUID string, lrpuuid string, uuid str
 
 	result, err := o.Client.Transact(context.Background(), ops...)
 	if err != nil {
-		fmt.Println("the problem is...", err)
+		return nil, fmt.Errorf("transact error: %w", err)
 	}
 	fmt.Println(result)
 
