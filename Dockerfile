@@ -11,6 +11,6 @@ RUN go build  -o ovn-go-cms .
 FROM gcr.io/distroless/static:nonroot
 COPY --from=goinit /src/ovn-go-cms/ovn-go-cms /usr/local/bin/ovn-go-cms
 
-EXPOSE 8080
+EXPOSE 8081
 USER nonroot:nonroot
 ENTRYPOINT ["/usr/local/bin/ovn-go-cms"]
