@@ -2,9 +2,7 @@ package initialize
 
 import (
 	"context"
-	"errors"
-
-	// "time"
+	"fmt"
 
 	NBModel "github.com/kwonkwonn/ovn-go-cms/ovs/internalModel"
 	"github.com/ovn-kubernetes/libovsdb/client"
@@ -25,7 +23,7 @@ func InitializeOvnClient(IPAddressNB string) (client.Client, error) {
 
 	ovnClient, err := client.NewOVSDBClient(*dbModel, client.WithEndpoint("tcp:"+IPAddressNB+":6641"))
 	if err != nil {
-		panic(errors.New("initial connection failed booting ovn-cms, check if ovn-northdb is on"))
+		return nil, fmt.Errorf("initial connection failed, check if ovn-northdb is on: %w", err)
 	}
 
 	ovnClient.Connect(context.Background())

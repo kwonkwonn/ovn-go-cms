@@ -51,7 +51,8 @@ func (h *Handler) CreateNewVm(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("request for new subnet, creating new router port")
 		routerUUID := h.Operator.ExternRouters[string(operation.ROUTER)].UUID
 		if routerUUID == "" {
-			panic("router not exist, something went wrong, critical")
+			http.Error(w, "router not found", http.StatusInternalServerError)
+			return
 		}
 
 		swUUID, err = h.Operator.AddSwitch()

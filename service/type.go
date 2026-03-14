@@ -6,7 +6,7 @@ type NewInstanceResult struct {
 	IP         string `json:"IP"`
 	MacAddress string `json:"macAddr"`
 	IfaceID    string `json:"sdnUUID"`
-	Detail     error  `json:"error"`
+	Detail     string `json:"detail,omitempty"`
 }
 
 type NewInstanceRequeset struct {

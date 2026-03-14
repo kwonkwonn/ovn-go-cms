@@ -30,7 +30,7 @@ func main() {
 	if len(Operator.ExternRouters) == 0 && len(Operator.ExternSwitchs) == 0 {
 		err := Operator.InitialSetting()
 		if err != nil {
-			panic("initialize error: " + err.Error())
+			log.Fatalf("InitialSetting failed: %v", err)
 		}
 	}
 
