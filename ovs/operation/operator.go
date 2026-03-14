@@ -46,10 +46,10 @@ func (o *Operator) IPMapToDev(IP string) externalmodel.NetInt {
 
 func (o *Operator) SwitchesPortConnect(uuids []string, IP string, VMUUID string, VMMac string) error {
 	for _, uuid := range uuids {
-
-		o.AddSwitchAPort(uuid, IP, VMUUID, VMMac)
+		if _, err := o.AddSwitchAPort(uuid, IP, VMUUID, VMMac); err != nil {
+			return err
+		}
 	}
-
 	return nil
 }
 
