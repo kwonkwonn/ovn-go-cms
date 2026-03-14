@@ -23,7 +23,7 @@ func (o *Operator) ChassisInitializing(RouterUplinkPort string) error {
 	}
 	data, err := os.ReadFile(filepath)
 	if err != nil {
-		panic("reading chassis file error, terminating process")
+		return fmt.Errorf("reading chassis file %q: %w", filepath, err)
 	}
 	yaml.Unmarshal(data, cfg)
 
@@ -230,11 +230,11 @@ func (o *Operator) AddExternSwitch(LS NBModel.LogicalSwitch, ports map[string]ex
 func (o *Operator) AddInterconnectR_S(lsUUID string, lrUUID string, ip string) error {
 	lrpuuid, err := util.UUIDGenerator()
 	if err != nil {
-		panic("lrpuuid generating error")
+		return fmt.Errorf("generating lrp uuid: %w", err)
 	}
 	lspuuid, err := util.UUIDGenerator()
 	if err != nil {
-		panic("lrpuuid generating error")
+		return fmt.Errorf("generating lsp uuid: %w", err)
 	}
 
 	SP, err := o.AddSwitchAPort_Router(lsUUID, lrpuuid.String(), lspuuid.String())
