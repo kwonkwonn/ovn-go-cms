@@ -2,6 +2,7 @@ package operation
 
 import (
 	"fmt"
+	"sync"
 
 	externalmodel "github.com/kwonkwonn/ovn-go-cms/ovs/externalModel"
 
@@ -26,11 +27,14 @@ const (
 )
 
 type Operator struct {
+	mu            sync.Mutex
 	Client        client.Client
 	ExternRouters externalmodel.EXRList
 	ExternSwitchs externalmodel.EXSList
-	// IPMapping map[string]string// device uuid
 }
+
+func (o *Operator) Lock()   { o.mu.Lock() }
+func (o *Operator) Unlock() { o.mu.Unlock() }
 
 func (o *Operator) IPMapToDev(IP string) externalmodel.NetInt {
 	list := externalmodel.GetNetInt(o.ExternRouters, IP)

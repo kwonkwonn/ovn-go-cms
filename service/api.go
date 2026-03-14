@@ -12,6 +12,9 @@ import (
 )
 
 func (h *Handler) CreateNewVm(w http.ResponseWriter, r *http.Request) {
+	h.Operator.Lock()
+	defer h.Operator.Unlock()
+
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		fmt.Println("add switch error")
@@ -90,6 +93,8 @@ func (h *Handler) CreateNewVm(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteAll(w http.ResponseWriter, r *http.Request) {
+	h.Operator.Lock()
+	defer h.Operator.Unlock()
 
 	h.Operator.DeleteAll()
 	w.Header().Set("Content-Type", "application/json")
@@ -98,6 +103,9 @@ func (h *Handler) DeleteAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DelNet(w http.ResponseWriter, r *http.Request) {
+	h.Operator.Lock()
+	defer h.Operator.Unlock()
+
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		fmt.Println("del switch error")
