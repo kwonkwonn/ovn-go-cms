@@ -17,7 +17,7 @@ import (
 func (o *Operator) ChassisInitializing(RouterUplinkPort string) error {
 	//Chassis 에 대한 정보는 ovn-sb에 저장되어 있기 때문에
 	// 현재는 외부 파일에서 읽어오고 있습니다.
-	filepath := "./.chassis.yaml"
+	filepath := getEnvOrDefault("OVN_CHASSIS_FILE", "./.chassis.yaml")
 	cfg := &externalmodel.Config{
 		ChassisList: make([]externalmodel.Chassis, 0),
 	}
@@ -198,7 +198,7 @@ func (o *Operator) UpdateDevices(LR NBModel.LogicalRouter, ports map[string]exte
 
 	o.ExternRouters[LR.UUID] = exR
 
-	o.ExternRouters["10.5.15.4"] = exR
+	o.ExternRouters[string(ROUTER)] = exR
 
 	return nil
 }

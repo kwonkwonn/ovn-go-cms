@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
+	"strconv"
 
 	initialize "github.com/kwonkwonn/ovn-go-cms/initialize"
 	externalmodel "github.com/kwonkwonn/ovn-go-cms/ovs/externalModel"
@@ -11,11 +13,21 @@ import (
 	"github.com/kwonkwonn/ovn-go-cms/service"
 )
 
-const NB_DB string = "10.5.15.3"
+func getEnvOrDefault(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
+}
 
 func main() {
+	nbDB := getEnvOrDefault("OVN_NB_DB", "10.5.15.3")
+	port, err := strconv.Atoi(getEnvOrDefault("OVN_PORT", "8081"))
+	if err != nil {
+		log.Fatalf("invalid OVN_PORT: %v", err)
+	}
 
-	ovnClient, err := initialize.InitializeOvnClient(NB_DB)
+	ovnClient, err := initialize.InitializeOvnClient(nbDB)
 	if err != nil {
 		log.Fatalf("Failed to initialize OVN client: %v", err)
 	}
@@ -40,7 +52,7 @@ func main() {
 		Operator: Operator,
 	}
 
-	server.InitServer(8081, handler)
+	server.InitServer(port, handler)
 
 	select {}
 }
