@@ -121,7 +121,7 @@ func (o *Operator) InitializeLogicalDevices() {
 			portsPool[port.UUID] = RtoS
 			portsPool[routerPortUUID] = RtoS
 
-		} else if port.Type == "vif" {
+		} else if port.Type == "" {
 			StoVM := &externalmodel.StoVMPort{
 				SwitchPort: &switchPort,
 			}
