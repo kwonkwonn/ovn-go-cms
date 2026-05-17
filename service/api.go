@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	externalmodel "github.com/kwonkwonn/ovn-go-cms/ovs/externalModel"
@@ -17,17 +18,16 @@ func (h *Handler) CreateNewVm(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		fmt.Println("add switch error")
-
-		w.Write([]byte(err.Error()))
+		log.Printf("CreateNewVm: read body error: %v", err)
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	defer r.Body.Close()
+
 	request := &NewInstanceRequeset{}
-	err = json.Unmarshal(body, request)
-	if err != nil {
-		fmt.Println("add switch error")
-		w.Write([]byte(err.Error()))
+	if err = json.Unmarshal(body, request); err != nil {
+		log.Printf("CreateNewVm: unmarshal error: %v", err)
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -39,42 +39,43 @@ func (h *Handler) CreateNewVm(w http.ResponseWriter, r *http.Request) {
 
 	mac, err := util.MacGenerator()
 	if err != nil {
-		w.Write([]byte(fmt.Errorf("mac generating error, cleaning").Error()))
+		log.Printf("CreateNewVm: mac generating error: %v", err)
+		writeError(w, http.StatusInternalServerError, "mac generating error")
 		return
 	}
 	InstUUID, err := util.UUIDGenerator()
 	if err != nil {
-		http.Error(w, "uuid generating error", http.StatusInternalServerError)
+		log.Printf("CreateNewVm: uuid generating error: %v", err)
+		writeError(w, http.StatusInternalServerError, "uuid generating error")
 		return
 	}
 
 	if len(RtoSInterface) == 0 {
-		fmt.Println("request for new subnet, creating new router port")
+		log.Println("CreateNewVm: request for new subnet, creating new router port")
 		routerUUID := h.Operator.ExternRouters[string(operation.ROUTER)].UUID
 		if routerUUID == "" {
-			http.Error(w, "router not found", http.StatusInternalServerError)
+			writeError(w, http.StatusInternalServerError, "router not found")
 			return
 		}
 
 		swUUID, err = h.Operator.AddSwitch()
 		if err != nil {
-			fmt.Println("add switch error")
-			fmt.Printf("%v", fmt.Errorf("http sending error, cleanning"))
+			log.Printf("CreateNewVm: add switch error: %v", err)
+			writeError(w, http.StatusInternalServerError, "add switch error")
 			return
 		}
-		err = h.Operator.AddInterconnectR_S(swUUID, routerUUID, RtoSInterfaceIP)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		if err = h.Operator.AddInterconnectR_S(swUUID, routerUUID, RtoSInterfaceIP); err != nil {
+			log.Printf("CreateNewVm: add interconnect error: %v", err)
+			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
 	} else {
 		swUUID = RtoSInterface[0].(*externalmodel.RtoSwitchPort).ConnectedSwitch.UUID
 	}
 
-	err = h.Operator.SwitchesPortConnect([]string{swUUID}, newvifIP, InstUUID.String(), mac)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err = h.Operator.SwitchesPortConnect([]string{swUUID}, newvifIP, InstUUID.String(), mac); err != nil {
+		log.Printf("CreateNewVm: switch port connect error: %v", err)
+		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -83,15 +84,7 @@ func (h *Handler) CreateNewVm(w http.ResponseWriter, r *http.Request) {
 		IP:         newvifIP,
 		IfaceID:    InstUUID.String(),
 	}
-
-	data, err := json.Marshal(result)
-	if err != nil {
-		http.Error(w, "json marshal error", http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *Handler) DeleteAll(w http.ResponseWriter, r *http.Request) {
@@ -99,9 +92,7 @@ func (h *Handler) DeleteAll(w http.ResponseWriter, r *http.Request) {
 	defer h.Operator.Unlock()
 
 	h.Operator.DeleteAll()
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("work done"))
+	writeJSON(w, http.StatusOK, map[string]string{"detail": "work done"})
 }
 
 func (h *Handler) DelNet(w http.ResponseWriter, r *http.Request) {
@@ -110,98 +101,77 @@ func (h *Handler) DelNet(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		fmt.Println("del switch error")
-		w.Write([]byte(err.Error()))
+		log.Printf("DelNet: read body error: %v", err)
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	defer r.Body.Close()
+
 	request := &DelInstanceRequest{}
-	err = json.Unmarshal(body, request)
-	if err != nil {
-		fmt.Println("del switch error")
-		w.Write([]byte(err.Error()))
+	if err = json.Unmarshal(body, request); err != nil {
+		log.Printf("DelNet: unmarshal error: %v", err)
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	NetSignifier, err := util.GetNetWorkSignifier(request.IP)
 	if err != nil {
-		fmt.Println("del switch error")
-		w.Write([]byte(err.Error()))
+		log.Printf("DelNet: network signifier parse error: %v", err)
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	NetInt := externalmodel.GetNetInt(h.Operator.ExternRouters, request.IP)
 	if len(NetInt) == 0 {
-		fmt.Println("no such switch exist")
-		w.Write([]byte(fmt.Errorf("no such switch exist").Error()))
+		writeError(w, http.StatusNotFound, "no such switch exist")
 		return
 	}
 
-	_, ok := NetInt[0].(*externalmodel.RtoSwitchPort)
-	if ok {
-		w.Write([]byte(fmt.Errorf("cannot delete switch port, connected to router").Error()))
+	if _, ok := NetInt[0].(*externalmodel.RtoSwitchPort); ok {
+		writeError(w, http.StatusConflict, "cannot delete switch port, connected to router")
 		return
 	}
+
 	Port, ok := NetInt[0].(*externalmodel.StoVMPort)
 	if !ok {
-		fmt.Println("no such switch port exist")
-		w.Write([]byte(fmt.Errorf("no such switch port exist").Error()))
+		writeError(w, http.StatusNotFound, "no such switch port exist")
 		return
 	}
 
 	SwitchPort := Port.ConnectedSwitch
 	if SwitchPort == nil {
-		fmt.Println("switch port not connected")
-		w.Write([]byte(fmt.Errorf("switch port not connected").Error()))
+		writeError(w, http.StatusInternalServerError, "switch port not connected")
 		return
 	}
 
-	err = h.Operator.DelSwitchPort(request.IP)
-	if err != nil {
-		fmt.Println("del switch port error")
-		w.Write([]byte(err.Error()))
+	if err = h.Operator.DelSwitchPort(request.IP); err != nil {
+		log.Printf("DelNet: del switch port error: %v", err)
+		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	result := &DelInstanceResult{Detail: fmt.Errorf("delete switch port operation")}
+	result := &DelInstanceResult{Detail: "delete switch port operation"}
 
 	delete(h.Operator.ExternRouters[string(operation.ROUTER)].SubNetworks, request.IP)
-	//여러 라우터가 생성될 필요가 있을때 수정,,
-	// 1라우터 - 1서브넷(스위치) 구조이므로 굳이 복잡한 순회를 하지 않아도 됨
-	// 서브넷이 삭제되면 연결된 스위치도 삭제
-	// 서브넷이 삭제되면 연결된 라우터 포트도 삭제
-	// 서브넷이 삭제되면 연결된 NAT도 삭제
 	nets := externalmodel.GetAllVIF(h.Operator.ExternRouters, NetSignifier)
 	if len(nets) == 0 {
-		fmt.Println("Deleting Connected Switch")
-		err = h.Operator.DelSwitch(SwitchPort.UUID)
-		if err != nil {
-			fmt.Println("del switch error")
-			w.Write([]byte(err.Error()))
+		log.Println("DelNet: deleting connected switch")
+		if err = h.Operator.DelSwitch(SwitchPort.UUID); err != nil {
+			log.Printf("DelNet: del switch error: %v", err)
+			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		err = h.Operator.DelRouterPort(NetSignifier + "1")
-		if err != nil {
-			fmt.Println("del router port error %w", err)
-			w.Write([]byte(fmt.Errorf("del router port error %w", err).Error()))
+		if err = h.Operator.DelRouterPort(NetSignifier + "1"); err != nil {
+			log.Printf("DelNet: del router port error: %v", err)
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("del router port error: %v", err))
 			return
 		}
-		result.Detail = fmt.Errorf("delete switch and router port success")
+		result.Detail = "delete switch and router port success"
 		delete(h.Operator.ExternRouters[string(operation.ROUTER)].SubNetworks, NetSignifier+"1")
 	}
 
-	// nat 삭제 도입 할 예정
-	result.Detail = fmt.Errorf("%v switch port deleted", result.Detail)
-	data, err := json.Marshal(result)
-	if err != nil {
-		fmt.Printf("%v", fmt.Errorf("http sending error, cleanning"))
-		w.Write([]byte(fmt.Errorf("http sending error, cleanning").Error()))
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
-	fmt.Println("delete vm success")
-
+	result.Detail = fmt.Sprintf("%s, switch port deleted", result.Detail)
+	log.Println("DelNet: delete vm success")
+	writeJSON(w, http.StatusOK, result)
 }
