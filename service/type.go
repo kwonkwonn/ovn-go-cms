@@ -23,7 +23,7 @@ type DelInstanceRequest struct {
 }
 
 type DelInstanceResult struct {
-	Detail error `json:"error"`
+	Detail string `json:"detail"`
 }
 
 // ///////////////////////////////////////////
