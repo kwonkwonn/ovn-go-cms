@@ -87,12 +87,13 @@ func (h *Handler) CreateNewVm(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
-func (h *Handler) DeleteAll(w http.ResponseWriter, r *http.Request) {
-	h.Operator.Lock()
-	defer h.Operator.Unlock()
-
-	h.Operator.DeleteAll()
-	writeJSON(w, http.StatusOK, map[string]string{"detail": "work done"})
+func (h *Handler) DeleteInstance(w http.ResponseWriter, r *http.Request) {
+	ip := r.PathValue("ip")
+	if ip == "" {
+		writeError(w, http.StatusBadRequest, "missing ip path parameter")
+		return
+	}
+	h.deleteInstance(w, ip)
 }
 
 func (h *Handler) DelNet(w http.ResponseWriter, r *http.Request) {
@@ -114,14 +115,21 @@ func (h *Handler) DelNet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	NetSignifier, err := util.GetNetWorkSignifier(request.IP)
+	h.deleteInstance(w, request.IP)
+}
+
+func (h *Handler) deleteInstance(w http.ResponseWriter, ip string) {
+	h.Operator.Lock()
+	defer h.Operator.Unlock()
+
+	NetSignifier, err := util.GetNetWorkSignifier(ip)
 	if err != nil {
-		log.Printf("DelNet: network signifier parse error: %v", err)
+		log.Printf("deleteInstance: network signifier parse error: %v", err)
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	NetInt := externalmodel.GetNetInt(h.Operator.ExternRouters, request.IP)
+	NetInt := externalmodel.GetNetInt(h.Operator.ExternRouters, ip)
 	if len(NetInt) == 0 {
 		writeError(w, http.StatusNotFound, "no such switch exist")
 		return
@@ -144,26 +152,26 @@ func (h *Handler) DelNet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Operator.DelSwitchPort(request.IP); err != nil {
-		log.Printf("DelNet: del switch port error: %v", err)
+	if err = h.Operator.DelSwitchPort(ip); err != nil {
+		log.Printf("deleteInstance: del switch port error: %v", err)
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	result := &DelInstanceResult{Detail: "delete switch port operation"}
 
-	delete(h.Operator.ExternRouters[string(operation.ROUTER)].SubNetworks, request.IP)
+	delete(h.Operator.ExternRouters[string(operation.ROUTER)].SubNetworks, ip)
 	nets := externalmodel.GetAllVIF(h.Operator.ExternRouters, NetSignifier)
 	if len(nets) == 0 {
-		log.Println("DelNet: deleting connected switch")
+		log.Println("deleteInstance: deleting connected switch")
 		if err = h.Operator.DelSwitch(SwitchPort.UUID); err != nil {
-			log.Printf("DelNet: del switch error: %v", err)
+			log.Printf("deleteInstance: del switch error: %v", err)
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
 		if err = h.Operator.DelRouterPort(NetSignifier + "1"); err != nil {
-			log.Printf("DelNet: del router port error: %v", err)
+			log.Printf("deleteInstance: del router port error: %v", err)
 			writeError(w, http.StatusInternalServerError, fmt.Sprintf("del router port error: %v", err))
 			return
 		}
@@ -172,6 +180,16 @@ func (h *Handler) DelNet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result.Detail = fmt.Sprintf("%s, switch port deleted", result.Detail)
-	log.Println("DelNet: delete vm success")
+	log.Println("deleteInstance: delete vm success")
 	writeJSON(w, http.StatusOK, result)
 }
+
+func (h *Handler) DeleteAll(w http.ResponseWriter, r *http.Request) {
+	h.Operator.Lock()
+	defer h.Operator.Unlock()
+
+	h.Operator.DeleteAll()
+	writeJSON(w, http.StatusOK, map[string]string{"detail": "work done"})
+}
+
+

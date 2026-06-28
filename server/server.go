@@ -34,6 +34,11 @@ func InitServer(portNum int, handler service.Handler) {
 	http.HandleFunc("DELETE /ALL", handler.DeleteAll)
 	// //**테스트용으로만 사용, 모든 가상 디바이스 삭제**
 
+	// RESTful endpoints (deprecates the above)
+	http.HandleFunc("POST /instances", handler.CreateNewVm)
+	http.HandleFunc("DELETE /instances/{ip}", handler.DeleteInstance)
+	http.HandleFunc("DELETE /instances", handler.DeleteAll)
+
 	err = http.Serve(listener, nil)
 	if err != nil {
 		log.Fatalf("HTTP server failed: %v", err)
