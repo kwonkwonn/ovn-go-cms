@@ -264,6 +264,10 @@ func (o *Operator) AddInterconnectR_S(lsUUID string, lrUUID string, ip string) e
 
 	externalmodel.AddNetInt(o.ExternRouters, ip, InterPort)
 
+	if err = o.AddSwitchACLs(lsUUID, ip); err != nil {
+		return fmt.Errorf("adding ACLs to switch: %w", err)
+	}
+
 	return nil
 }
 
